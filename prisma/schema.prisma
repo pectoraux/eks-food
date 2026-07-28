@@ -1,0 +1,449 @@
+// Eks-Food — Food Services Operating System
+// Multi-tenant, configurable, event-driven schema.
+// NOTE: SQLite is used in this environment. Enums/array types are encoded as
+// JSON strings or pipe-separated values and validated at the application layer.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Tenancy & Identity
+// ---------------------------------------------------------------------------
+
+model Organization {
+  id            String   @id @default(cuid())
+  slug          String   @unique
+  name          String
+  country       String
+  baseCurrency  String   @default("GHS")
+  status        String   @default("ACTIVE") // ACTIVE | SUSPENDED
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  users         User[]
+  cooks         Cook[]
+  customers     Customer[]
+  services      Service[]
+  mealCategories MealCategory[]
+  regions       Region[]
+  bookings      Booking[]
+  payments      PayswapPayment[]
+  transfers     PayswapTransfer[]
+  inspections   Inspection[]
+  demandSignals DemandSignal[]
+  auditLogs     AuditLog[]
+  featureFlags  FeatureFlag[]
+  pricingRules  PricingRule[]
+}
+
+model User {
+  id               String   @id @default(cuid())
+  organizationId   String
+  email            String   @unique
+  name             String
+  phone            String?
+  // Comma-separated role set. RBAC enforced at API layer.
+  // CUSTOMER | COOK | MANAGER | INSPECTOR | RIDER | RESTAURANT | SUPPLIER | ADMIN | SUPER_ADMIN | SUPPORT
+  roles            String   @default("CUSTOMER")
+  status           String   @default("ACTIVE") // ACTIVE | SUSPENDED | PENDING
+  avatarUrl        String?
+  locale           String   @default("en")
+  payswapCustomerId String? // Payswap Customer reference (no card data)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  organization     Organization @relation(fields: [organizationId], references: [id])
+  customerProfile  Customer?
+  cookProfile      Cook?
+  auditLogs        AuditLog[]
+
+  @@index([organizationId])
+}
+
+// ---------------------------------------------------------------------------
+// Customer Platform
+// ---------------------------------------------------------------------------
+
+model Customer {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String   @unique
+  dietaryPrefs   String   @default("") // pipe-separated tags
+  favoriteCuisines String @default("")
+  rating         Float    @default(5.0)
+  totalBookings  Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  user           User         @relation(fields: [userId], references: [id])
+  addresses      Address[]
+  bookings       Booking[]    @relation("CustomerBookings")
+  favorites      Favorite[]
+
+  @@index([organizationId])
+}
+
+model Address {
+  id          String   @id @default(cuid())
+  customerId  String
+  label       String   @default("Home")
+  line1       String
+  city        String
+  region      String
+  lat         Float
+  lng         Float
+  instructions String?
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  customer    Customer @relation(fields: [customerId], references: [id])
+
+  @@index([customerId])
+}
+
+model Favorite {
+  id         String @id @default(cuid())
+  customerId String
+  cookId     String
+  createdAt  DateTime @default(now())
+
+  customer   Customer @relation(fields: [customerId], references: [id])
+  cook       Cook     @relation(fields: [cookId], references: [id])
+
+  @@unique([customerId, cookId])
+}
+
+// ---------------------------------------------------------------------------
+// Cook Platform
+// ---------------------------------------------------------------------------
+
+model Cook {
+  id              String   @id @default(cuid())
+  organizationId  String
+  userId          String   @unique
+  bio             String   @default("")
+  // pipe-separated cuisines, e.g. "ghanaian|nigerian|vegan"
+  cuisines        String   @default("")
+  // pipe-separated skills, e.g. "grilling|baking|pastry"
+  skills          String   @default("")
+  // pipe-separated languages
+  languages       String   @default("en")
+  hourlyRate      Float    @default(50)
+  currency        String   @default("GHS")
+  rating          Float    @default(5.0)
+  totalJobs       Int      @default(0)
+  completedJobs   Int      @default(0)
+  responseTimeMins Int     @default(15)
+  // PENDING | APPROVED | SUSPENDED | REJECTED
+  verificationStatus String @default("PENDING")
+  homeRegion       String?
+  lat              Float?
+  lng              Float?
+  availabilityMode String   @default("FLEXIBLE") // FLEXIBLE | SCHEDULED | UNAVAILABLE
+  portfolioUrl     String?
+  avatarUrl        String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  user            User         @relation(fields: [userId], references: [id])
+  certifications  Certification[]
+  availability    CookAvailability[]
+  bookings        Booking[]    @relation("CookBookings")
+  favorites       Favorite[]
+  inspections     Inspection[]
+
+  @@index([organizationId])
+  @@index([verificationStatus])
+}
+
+model CookAvailability {
+  id        String   @id @default(cuid())
+  cookId    String
+  // ISO weekday 0-6
+  weekday   Int
+  startHour Int
+  endHour   Int
+  createdAt DateTime @default(now())
+
+  cook      Cook @relation(fields: [cookId], references: [id], onDelete: Cascade)
+
+  @@index([cookId])
+}
+
+model Certification {
+  id            String   @id @default(cuid())
+  cookId        String
+  title         String
+  issuer        String
+  // PENDING | VERIFIED | EXPIRED | REVOKED
+  status        String   @default("PENDING")
+  issuedAt      DateTime?
+  expiresAt     DateTime?
+  inspectorId   String?
+  publicBadgeId String?
+  createdAt     DateTime @default(now())
+
+  cook          Cook @relation(fields: [cookId], references: [id], onDelete: Cascade)
+
+  @@index([cookId])
+}
+
+// ---------------------------------------------------------------------------
+// Configurable Catalog (Admin-driven — never hardcoded)
+// ---------------------------------------------------------------------------
+
+model Service {
+  id            String   @id @default(cuid())
+  organizationId String
+  code          String   // e.g. IN_HOME_COOKING, MEAL_PREP, EVENT_CATERING
+  name          String
+  description   String
+  basePrice     Float
+  currency      String   @default("GHS")
+  estimatedMins Int      @default(120)
+  active        Boolean  @default(true)
+  config        String   @default("{}") // JSON blob for service-specific rules
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  organization  Organization @relation(fields: [organizationId], references: [id])
+  bookings      Booking[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+}
+
+model MealCategory {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  icon           String?
+  active         Boolean  @default(true)
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([organizationId, name])
+}
+
+model Region {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  country        String
+  // GeoJSON-ish bounding box encoded as JSON: {ne:{lat,lng}, sw:{lat,lng}}
+  bounds         String
+  active         Boolean  @default(true)
+  managerId      String?
+  createdAt      DateTime @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([organizationId, name])
+}
+
+model PricingRule {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  // SLIDER | FIXED | SURGE | TIERED
+  kind           String
+  // JSON: {param: value}, e.g. {"perHour": 40, "minCharge": 60}
+  config         String
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+}
+
+model FeatureFlag {
+  id             String   @id @default(cuid())
+  organizationId String
+  key            String
+  enabled        Boolean  @default(false)
+  // JSON rollout config
+  config         String   @default("{}")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([organizationId, key])
+}
+
+// ---------------------------------------------------------------------------
+// Booking Engine & Dispatch
+// ---------------------------------------------------------------------------
+
+model Booking {
+  id             String   @id @default(cuid())
+  organizationId String
+  code           String   @unique // human-friendly EKS-XXXX
+  customerId     String
+  cookId         String?
+  serviceId      String
+  // IMMEDIATE | SCHEDULED | RECURRING | EVENT | CORPORATE | SUBSCRIPTION
+  bookingType    String
+  scheduledFor   DateTime
+  durationMins   Int      @default(120)
+  partySize      Int      @default(2)
+  addressLine1   String
+  city           String
+  region         String
+  lat            Float
+  lng            Float
+  notes          String?
+  // DRAFT | PENDING_MATCH | ASSIGNED | CONFIRMED | EN_ROUTE | IN_PROGRESS | COMPLETED | CANCELLED | ESCALATED
+  status         String   @default("DRAFT")
+  matchScore     Float?
+  // JSON: {distance, rating, availability, cuisine, price, language, preference}
+  matchDebug     String?
+  quotedPrice    Float
+  currency       String   @default("GHS")
+  payswapPaymentId String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  customer       Customer     @relation("CustomerBookings", fields: [customerId], references: [id])
+  cook           Cook?        @relation("CookBookings", fields: [cookId], references: [id])
+  service        Service      @relation(fields: [serviceId], references: [id])
+
+  @@index([organizationId])
+  @@index([customerId])
+  @@index([cookId])
+  @@index([status])
+}
+
+// ---------------------------------------------------------------------------
+// Payswap Payment Abstraction (Stripe-like, no sensitive data stored)
+// ---------------------------------------------------------------------------
+
+model PayswapPayment {
+  id             String   @id @default(cuid())
+  organizationId String
+  payswapId      String   @unique // Payswap Payment Intent / Charge ID
+  bookingCode    String?
+  customerId     String? // internal user id
+  payswapCustomerId String?
+  amount         Float
+  currency       String   @default("GHS")
+  // REQUIRES_ACTION | REQUIRES_CONFIRMATION | SUCCEEDED | CANCELLED | FAILED | REFUNDED
+  status         String
+  // JSON: {method, last4, brand} — references only, never raw card data
+  methodSummary  String   @default("{}")
+  idempotencyKey String   @unique
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@index([bookingCode])
+  @@index([status])
+}
+
+model PayswapTransfer {
+  id             String   @id @default(cuid())
+  organizationId String
+  payswapId      String   @unique // Payswap Transfer ID (worker payout)
+  payeeUserId    String
+  amount         Float
+  currency       String   @default("GHS")
+  // PENDING | IN_TRANSIT | PAID | FAILED | CANCELLED
+  status         String
+  metadata       String   @default("{}")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@index([payeeUserId])
+}
+
+// ---------------------------------------------------------------------------
+// Food Inspector Platform
+// ---------------------------------------------------------------------------
+
+model Inspection {
+  id             String   @id @default(cuid())
+  organizationId String
+  cookId         String
+  inspectorId    String?
+  // CERTIFICATION | COMPLAINT | ROUTINE | RENEWAL
+  kind           String
+  // SCHEDULED | IN_PROGRESS | PASSED | FAILED | PENDING_REVIEW
+  status         String   @default("SCHEDULED")
+  scheduledFor   DateTime
+  completedAt    DateTime?
+  score          Float?
+  // JSON array of checklist items
+  checklist      String   @default("[]")
+  report         String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  cook           Cook         @relation(fields: [cookId], references: [id])
+
+  @@index([organizationId])
+  @@index([cookId])
+}
+
+// ---------------------------------------------------------------------------
+// Food Intelligence Platform (aggregated, anonymized)
+// ---------------------------------------------------------------------------
+
+model DemandSignal {
+  id             String   @id @default(cuid())
+  organizationId String
+  region         String
+  cuisine        String
+  // ISO date (YYYY-MM-DD)
+  day            String
+  hour           Int
+  demandScore    Float    // normalized 0-100
+  avgPrice       Float
+  bookings       Int      @default(0)
+  createdAt      DateTime @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId, region, day])
+}
+
+// ---------------------------------------------------------------------------
+// Audit & Observability
+// ---------------------------------------------------------------------------
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  organizationId String
+  actorUserId    String?
+  action         String
+  entityType     String
+  entityId       String?
+  // JSON payload
+  metadata       String   @default("{}")
+  ipAddress      String?
+  createdAt      DateTime @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  actor          User?        @relation(fields: [actorUserId], references: [id])
+
+  @@index([organizationId])
+  @@index([entityType, entityId])
+}
