@@ -54,6 +54,7 @@
       "@eks/workflow": ["./src/packages/workflow/index.ts"],
       "@eks/registry": ["./src/packages/registry/index.ts"],
       "@eks/dev-cli": ["./src/packages/dev-cli/index.ts"],
+      "@eks/connectors": ["./src/packages/connectors/index.ts"],
       "@eks/*": ["./src/packages/*"]
     }
   },

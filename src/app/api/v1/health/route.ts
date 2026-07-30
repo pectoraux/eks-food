@@ -1,13 +1,20 @@
 import { NextRequest } from "next/server";
-import { healthRegistry } from "@eks/observability/health";
+import { db } from "@/lib/db";
 import { success } from "@eks/api/response";
 import { apiHandler } from "@eks/api/handler";
-
 export const dynamic = "force-dynamic";
-
-/** GET /api/v1/health — aggregated liveness + readiness report. */
 export const GET = apiHandler(async (req: NextRequest) => {
-  const kind = req.nextUrl.searchParams.get("kind") as "liveness" | "readiness" | undefined;
-  const report = await healthRegistry().run(kind ?? undefined);
-  return success(report, { status: report.status === "healthy" ? 200 : 503 });
+  const category = req.nextUrl.searchParams.get("category");
+  const where = category ? { category } : {};
+  const providers = await db.externalProvider.findMany({
+    where,
+    include: { health: { orderBy: { reportedAt: "desc" }, take: 1 } },
+  });
+  return success(providers.map((p) => ({
+    id: p.id, code: p.code, name: p.name, category: p.category,
+    status: p.health[0]?.status ?? "HEALTHY",
+    score: p.health[0]?.score ?? 100,
+    latencyMs: p.health[0]?.latencyMs ?? 0,
+    errorRate: p.health[0]?.errorRate ?? 0,
+  })));
 });

@@ -1815,3 +1815,357 @@ model SecretReference {
   @@index([organizationId])
   @@index([connectorDefId])
 }
+
+// ===========================================================================
+// Milestone 5 — Production Connector Implementations & External Service Integrations
+// ===========================================================================
+// Production connectors built on the M4 Universal Connector Platform. Provider-
+// agnostic, with a selection engine, normalization, failover, and caching.
+// See docs/connectors/PROVIDER_DEVELOPMENT.md.
+// ===========================================================================
+
+// --- Provider Registry ---
+
+model ExternalProvider {
+  id              String   @id @default(cuid())
+  // MAPS | WEATHER | CALENDAR | GOVERNMENT | RESTAURANT | PROCUREMENT | MERCHANT | NOTIFICATIONS | COMMUNICATIONS | IDENTITY
+  category        String
+  // The provider code, e.g. "google-maps", "openweather", "google-calendar"
+  code            String
+  name            String
+  description     String?
+  // The semantic version of the provider adapter
+  version         String   @default("1.0.0")
+  // ACTIVE | INACTIVE | DEPRECATED
+  status          String   @default("ACTIVE")
+  // Default weight for provider selection (higher = preferred)
+  weight          Int      @default(100)
+  // Whether this provider supports failover
+  supportsFailover Boolean @default(true)
+  // JSON: supported capabilities (e.g. ["geocoding", "routing", "places"])
+  capabilities    String   @default("[]")
+  // JSON: supported regions (e.g. ["GH", "NG", "global"])
+  regions         String   @default("[]")
+  // JSON: rate limits (per-second, per-day)
+  rateLimits      String   @default("{}")
+  // JSON: pricing (cost per 1k calls)
+  pricing         String   @default("{}")
+  publisherId     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  configurations  ProviderConfiguration[]
+  health          ProviderHealth[]
+  capabilities2   ProviderCapability[]
+
+  @@unique([category, code])
+  @@index([category])
+  @@index([status])
+}
+
+model ProviderConfiguration {
+  id              String   @id @default(cuid())
+  organizationId  String
+  providerId      String
+  // Display name
+  name            String
+  // JSON: provider-specific config
+  config          String   @default("{}")
+  // ACTIVE | PAUSED | ERROR
+  status          String   @default("ACTIVE")
+  // The credential ID (links to ConnectorCredential or ProviderCredential)
+  credentialId    String?
+  // JSON: tenant-specific overrides (weight, region preference, etc.)
+  tenantOverrides String   @default("{}")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  provider        ExternalProvider @relation(fields: [providerId], references: [id])
+  credential      ProviderCredential? @relation(fields: [credentialId], references: [id])
+
+  @@index([organizationId])
+  @@index([providerId])
+  @@index([status])
+}
+
+model ProviderCredential {
+  id              String   @id @default(cuid())
+  organizationId  String
+  providerId      String
+  name            String
+  // API_KEY | OAUTH2 | BEARER | BASIC | MTLS | SIGNED | CUSTOM
+  authType        String
+  // Encrypted credential payload (AES-256-GCM)
+  encryptedData   String
+  version         Int      @default(1)
+  active          Boolean  @default(true)
+  expiresAt       DateTime?
+  lastRotatedAt   DateTime?
+  lastUsedAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  configurations  ProviderConfiguration[]
+
+  @@index([organizationId])
+  @@index([providerId])
+}
+
+model ProviderHealth {
+  id              String   @id @default(cuid())
+  providerId      String
+  // HEALTHY | DEGRADED | UNHEALTHY | OFFLINE
+  status          String
+  // Health score (0-100, used by the selection engine)
+  score           Int      @default(100)
+  latencyMs       Int      @default(0)
+  errorRate       Float    @default(0)
+  successRate     Float    @default(1)
+  // Number of consecutive failures (for circuit breaker)
+  consecutiveFailures Int  @default(0)
+  reportedAt      DateTime @default(now())
+
+  provider        ExternalProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([providerId])
+  @@index([reportedAt])
+}
+
+model ProviderCapability {
+  id              String   @id @default(cuid())
+  providerId      String
+  // e.g. "geocoding", "routing", "current_weather", "read_events"
+  code            String
+  // Whether this capability is currently supported
+  supported       Boolean  @default(true)
+  // JSON: capability-specific limits or config
+  metadata        String   @default("{}")
+  createdAt       DateTime @default(now())
+
+  provider        ExternalProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, code])
+  @@index([providerId])
+}
+
+model ProviderRegion {
+  id              String   @id @default(cuid())
+  providerId      String
+  // ISO country code or "global"
+  region          String
+  // Whether the provider is available in this region
+  available       Boolean  @default(true)
+  // Region-specific latency in ms
+  latencyMs       Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  @@unique([providerId, region])
+  @@index([providerId])
+}
+
+// --- Caching ---
+
+model ConnectorCache {
+  id              String   @id @default(cuid())
+  organizationId  String
+  providerId      String
+  // The cache key
+  key             String
+  // The cached value (JSON)
+  value           String
+  // TTL in seconds
+  ttlSec          Int
+  // Whether this entry is stale (for stale-while-revalidate)
+  stale           Boolean  @default(false)
+  // Hit count (for hot-key analysis)
+  hitCount        Int      @default(0)
+  createdAt       DateTime @default(now())
+  expiresAt       DateTime
+  lastAccessedAt  DateTime @default(now())
+
+  @@unique([organizationId, providerId, key])
+  @@index([organizationId, providerId])
+  @@index([expiresAt])
+}
+
+// --- Synchronization History ---
+
+model SynchronizationHistory {
+  id              String   @id @default(cuid())
+  organizationId  String
+  providerId      String
+  configId        String?
+  // The resource synced
+  resource        String
+  // FULL | INCREMENTAL | DELTA
+  mode            String
+  // COMPLETED | FAILED | PARTIAL
+  status          String
+  recordsSynced   Int      @default(0)
+  durationMs      Int      @default(0)
+  // The cursor for the next sync
+  nextCursor      String?
+  errorMessage    String?
+  startedAt       DateTime @default(now())
+  completedAt     DateTime?
+
+  @@index([organizationId, providerId])
+  @@index([status])
+  @@index([startedAt])
+}
+
+// --- Category-Specific Connections ---
+
+model MapProvider {
+  id              String   @id @default(cuid())
+  organizationId  String
+  providerCode    String   // google-maps | here | mapbox | openstreetmap
+  apiKey           String   // encrypted
+  active          Boolean  @default(true)
+  // Preferred routing profile: driving | walking | cycling | transit
+  routingProfile  String   @default("driving")
+  // Whether traffic-aware routing is enabled
+  trafficAware    Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([organizationId])
+}
+
+model WeatherProvider {
+  id              String   @id @default(cuid())
+  organizationId  String
+  providerCode    String   // openweather | weatherapi | accuweather | open-meteo
+  apiKey           String   // encrypted
+  active          Boolean  @default(true)
+  // Default location for weather queries
+  defaultLat      Float?
+  defaultLng      Float?
+  // Cache TTL in seconds for forecasts
+  cacheTtlSec     Int      @default(600)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([organizationId])
+}
+
+model CalendarConnection {
+  id              String   @id @default(cuid())
+  organizationId  String
+  providerCode    String   // google-calendar | outlook | caldav
+  // The external calendar ID
+  externalCalendarId String
+  // Encrypted OAuth tokens or CalDAV credentials
+  encryptedTokens String
+  // The last sync cursor (for incremental sync)
+  syncCursor      String?
+  active          Boolean  @default(true)
+  lastSyncAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([organizationId])
+}
+
+model RestaurantConnection {
+  id              String   @id @default(cuid())
+  organizationId  String
+  providerCode    String   // square | toast | lightspeed | clover | generic-pos
+  restaurantId    String
+  // Encrypted API credentials
+  encryptedCreds  String
+  // POS | RESERVATIONS | KITCHEN | MENU
+  systemType      String
+  active          Boolean  @default(true)
+  lastSyncAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([organizationId])
+}
+
+model ProcurementConnection {
+  id              String   @id @default(cuid())
+  organizationId  String
+  providerCode    String   // sysco | usfoods | metro | csv-sftp | edi | local
+  supplierId      String
+  // Encrypted credentials
+  encryptedCreds  String
+  // The sync interval in seconds
+  syncIntervalSec Int      @default(3600)
+  active          Boolean  @default(true)
+  lastSyncAt      DateTime?
+  lastCatalogHash String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([organizationId])
+}
+
+model MerchantConnection {
+  id              String   @id @default(cuid())
+  organizationId  String
+  providerCode    String   // corporate-meals | catering | workplace-ordering
+  merchantId      String
+  // Encrypted credentials
+  encryptedCreds  String
+  // JSON: contract metadata
+  contract        String   @default("{}")
+  active          Boolean  @default(true)
+  lastSyncAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([organizationId])
+}
+
+model GovernmentConnection {
+  id              String   @id @default(cuid())
+  organizationId  String
+  providerCode    String   // gh-fda | ng-nafdac | ke-kebs | za-sabs
+  // The verification type
+  verificationType String   // BUSINESS_REG | FOOD_LICENSE | FOOD_HANDLER_CERT | INSPECTION | TAX_REG
+  // Encrypted credentials
+  encryptedCreds  String
+  active          Boolean  @default(true)
+  lastSyncAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([organizationId])
+}
+
+model NotificationProvider {
+  id              String   @id @default(cuid())
+  organizationId  String
+  providerCode    String   // sendgrid | mailgun | twilio | messagebird | fcm | apns
+  // EMAIL | SMS | PUSH | IN_APP
+  channel         String
+  // Encrypted credentials
+  encryptedCreds  String
+  active          Boolean  @default(true)
+  // Whether this is the default provider for the channel
+  isDefault       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([channel])
+}
+
+model CommunicationProvider {
+  id              String   @id @default(cuid())
+  organizationId  String
+  providerCode    String   // twilio-voice | vonage | slack | teams | whatsapp
+  // VOICE | CHAT | EMAIL | SMS
+  channel         String
+  // Encrypted credentials
+  encryptedCreds  String
+  active          Boolean  @default(true)
+  isDefault       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([channel])
+}

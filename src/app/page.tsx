@@ -5,6 +5,7 @@ import { DevShell, type DevView } from "@/components/dev-shell";
 import { Providers } from "@/components/providers";
 import { DashboardView, ExtensionsView, ConnectorsView, WorkflowsView, EventsView, ManifestsView, CliView, PublishersView, LogsView, ReplayView, RuntimeView } from "@/components/dev-views";
 import { ConnectorRegistryView, SyncMonitorView, WebhookExplorerView, PollingExplorerView, SchemaExplorerView, HealthDashboardView, CredentialsView, PoliciesView } from "@/components/integration-views";
+import { ProviderRegistryView, ConnectorHealthView, SyncDashboardView, CacheInspectorView, ApiExplorerView } from "@/components/connectors-views";
 
 /**
  * Eks-Food Developer Console — the visible surface of Milestones 3 + 4.
@@ -27,6 +28,7 @@ function DevConsole() {
       try {
         await fetch("/api/v1/seed-developer", { method: "POST" });
         await fetch("/api/v1/seed-integration", { method: "POST" });
+        await fetch("/api/v1/seed-connectors", { method: "POST" });
       } catch {
         /* ignore */
       }
@@ -56,6 +58,12 @@ function DevConsole() {
       {view === "health-dashboard" && <HealthDashboardView />}
       {view === "credentials" && <CredentialsView />}
       {view === "policies" && <PoliciesView />}
+      {/* M5 views */}
+      {view === "provider-registry" && <ProviderRegistryView />}
+      {view === "connector-health" && <ConnectorHealthView />}
+      {view === "sync-dashboard" && <SyncDashboardView />}
+      {view === "cache-inspector" && <CacheInspectorView />}
+      {view === "api-explorer" && <ApiExplorerView />}
     </DevShell>
   );
 }

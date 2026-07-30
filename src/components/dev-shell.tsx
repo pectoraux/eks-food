@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { LayoutDashboard, Puzzle, Plug, GitBranch, ScrollText, ShieldCheck, Terminal, Ticket, Activity, Menu, X, Moon, Sun, RotateCcw, Webhook, RefreshCw, FileJson, Heart, KeyRound, Gauge, Clock } from "lucide-react";
+import { LayoutDashboard, Puzzle, Plug, GitBranch, ScrollText, ShieldCheck, Terminal, Ticket, Activity, Menu, X, Moon, Sun, RotateCcw, Webhook, RefreshCw, FileJson, Heart, KeyRound, Gauge, Clock, MapPin, Database, Send, Globe } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useSeedDeveloper } from "@/lib/dev-api";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-export type DevView = "dashboard" | "extensions" | "connectors" | "workflows" | "events" | "manifests" | "cli" | "publishers" | "logs" | "replay" | "runtime" | "conn-registry" | "sync-monitor" | "webhook-explorer" | "polling-explorer" | "schema-explorer" | "health-dashboard" | "credentials" | "policies";
+export type DevView = "dashboard" | "extensions" | "connectors" | "workflows" | "events" | "manifests" | "cli" | "publishers" | "logs" | "replay" | "runtime" | "conn-registry" | "sync-monitor" | "webhook-explorer" | "polling-explorer" | "schema-explorer" | "health-dashboard" | "credentials" | "policies" | "provider-registry" | "connector-health" | "sync-dashboard" | "cache-inspector" | "api-explorer";
 
 const NAV: { id: DevView; label: string; icon: typeof Puzzle; group: string }[] = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, group: "Overview" },
@@ -30,6 +30,11 @@ const NAV: { id: DevView; label: string; icon: typeof Puzzle; group: string }[] 
   { id: "health-dashboard", label: "Health Dashboard", icon: Heart, group: "Integration" },
   { id: "credentials", label: "Credentials", icon: KeyRound, group: "Integration" },
   { id: "policies", label: "Retry & Rate-Limit", icon: Gauge, group: "Integration" },
+  { id: "provider-registry", label: "Provider Registry", icon: Globe, group: "Connectors" },
+  { id: "connector-health", label: "Connector Health", icon: Heart, group: "Connectors" },
+  { id: "sync-dashboard", label: "Sync Dashboard", icon: RefreshCw, group: "Connectors" },
+  { id: "cache-inspector", label: "Cache Inspector", icon: Database, group: "Connectors" },
+  { id: "api-explorer", label: "API Explorer", icon: Send, group: "Connectors" },
 ];
 
 export function DevShell({ active, onNavigate, children }: { active: DevView; onNavigate: (v: DevView) => void; children: ReactNode }) {
