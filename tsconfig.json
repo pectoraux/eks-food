@@ -46,6 +46,13 @@
       "@eks/organizations": ["./src/packages/organizations/index.ts"],
       "@eks/notifications": ["./src/packages/notifications/index.ts"],
       "@eks/verification": ["./src/packages/verification/index.ts"],
+      "@eks/developer": ["./src/packages/developer/index.ts"],
+      "@eks/sdk": ["./src/packages/sdk/index.ts"],
+      "@eks/connector-sdk": ["./src/packages/connector-sdk/index.ts"],
+      "@eks/runtime": ["./src/packages/runtime/index.ts"],
+      "@eks/workflow": ["./src/packages/workflow/index.ts"],
+      "@eks/registry": ["./src/packages/registry/index.ts"],
+      "@eks/dev-cli": ["./src/packages/dev-cli/index.ts"],
       "@eks/*": ["./src/packages/*"]
     }
   },

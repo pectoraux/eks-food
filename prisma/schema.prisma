@@ -937,3 +937,404 @@ model NotificationLog {
   @@index([organizationId])
   @@index([status])
 }
+
+// ===========================================================================
+// Milestone 3 — Developer Platform, Extension Framework & Connector SDK
+// ===========================================================================
+// Enables third parties and internal teams to safely extend the platform without
+// modifying core code. Extensions run in a sandboxed runtime with capability-
+// based permissions. See docs/developer/ARCHITECTURE.md.
+// ===========================================================================
+
+// --- Publishers ---
+
+model Publisher {
+  id              String   @id @default(cuid())
+  // Unique publisher handle, e.g. "eks-food", "acme-corp"
+  handle          String   @unique
+  name            String
+  description     String?
+  // PENDING | VERIFIED | SUSPENDED
+  verificationStatus String @default("PENDING")
+  // Ed25519 public key (base64) for signing packages
+  publicKey       String?
+  websiteUrl      String?
+  contactEmail    String?
+  ownerUserId     String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  packages        Package[]
+  extensions      Extension[]
+}
+
+// --- Extensions & Versions ---
+
+model Extension {
+  id              String   @id @default(cuid())
+  // Unique extension identifier, e.g. "com.acme.cook-analytics"
+  identifier      String   @unique
+  name            String
+  description     String?
+  publisherId     String
+  // The latest stable version id
+  latestVersionId String? @unique
+  // PENDING | ACTIVE | SUSPENDED | REMOVED
+  status          String   @default("PENDING")
+  // Visibility: PRIVATE | UNLISTED | PUBLIC (marketplace in M5)
+  visibility      String   @default("PRIVATE")
+  category        String?
+  tags            String   @default("") // pipe-separated
+  iconUrl         String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  publisher       Publisher   @relation(fields: [publisherId], references: [id])
+  latestVersion   ExtensionVersion? @relation("LatestVersion", fields: [latestVersionId], references: [id])
+  versions        ExtensionVersion[] @relation("ExtensionVersions")
+  installations   ExtensionInstallation[]
+  secrets         Secret[]
+  logs            ExtensionLog[]
+  runtimeHealth   RuntimeHealth[]
+}
+
+model ExtensionVersion {
+  id              String   @id @default(cuid())
+  extensionId     String
+  version         String   // semver: 1.0.0
+  // The manifest JSON (metadata, capabilities, permissions, config schema)
+  manifest        String
+  // SHA-256 of the package artifact
+  checksum        String
+  // Ed25519 signature (base64)
+  signature       String?
+  // Size in bytes of the package
+  sizeBytes       Int
+  // RELEASED | STAGED | DEPRECATED | YANKED
+  status          String   @default("RELEASED")
+  // Staged rollout percentage (0-100)
+  rolloutPercent  Int      @default(100)
+  changelog       String?
+  // Compatibility range: >=1.0.0 <2.0.0
+  compatRange     String
+  createdAt       DateTime @default(now())
+  publishedAt     DateTime?
+
+  extension       Extension @relation("ExtensionVersions", fields: [extensionId], references: [id], onDelete: Cascade)
+  latestFor       Extension? @relation("LatestVersion")
+  installations   ExtensionInstallation[]
+  packages        Package[]
+  manifests       ExtensionManifest[] @relation("ManifestVersion")
+
+  @@unique([extensionId, version])
+  @@index([extensionId])
+  @@index([status])
+}
+
+model ExtensionManifest {
+  id              String   @id @default(cuid())
+  versionId       String
+  // Parsed manifest fields (denormalized for querying)
+  name            String
+  version         String
+  capabilities    String   @default("[]") // JSON array
+  permissions     String   @default("[]") // JSON array
+  requiredAPIs    String   @default("[]") // JSON array
+  requiredEvents  String   @default("[]") // JSON array
+  configSchema    String   @default("{}") // JSON schema
+  connectorDeps   String   @default("[]") // JSON array
+  localization    String   @default("{}") // JSON
+  licensing       String   @default("{}") // JSON
+  compatRange     String
+  // VALID | INVALID
+  validationStatus String  @default("VALID")
+  validationErrors String?
+  createdAt       DateTime @default(now())
+
+  extensionVersion ExtensionVersion @relation("ManifestVersion", fields: [versionId], references: [id], onDelete: Cascade)
+
+  @@index([versionId])
+}
+
+// --- Installations ---
+
+model ExtensionInstallation {
+  id              String   @id @default(cuid())
+  extensionId     String
+  versionId       String
+  organizationId  String
+  // The tenant this extension is installed for
+  // PENDING | ACTIVE | SUSPENDED | REMOVED
+  status          String   @default("PENDING")
+  // Granted permissions (JSON array) — reviewed at install time
+  grantedPermissions String @default("[]")
+  // Extension configuration (JSON, validated against manifest configSchema)
+  configuration   String   @default("{}")
+  installedById   String
+  activatedAt     DateTime?
+  suspendedAt     DateTime?
+  removedAt       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  extension       Extension @relation(fields: [extensionId], references: [id])
+  version         ExtensionVersion @relation(fields: [versionId], references: [id])
+  connectorConfigs ConnectorConfiguration[]
+  workflowExecutions WorkflowExecution[]
+
+  @@unique([extensionId, organizationId])
+  @@index([organizationId])
+  @@index([status])
+}
+
+// --- Connectors ---
+
+model ConnectorDefinition {
+  id              String   @id @default(cuid())
+  // Unique connector code, e.g. "payswap", "google-sheets"
+  code            String   @unique
+  name            String
+  description     String?
+  // The connector's auth schema (JSON schema for configuration)
+  authSchema      String   @default("{}")
+  // Whether this connector supports webhooks
+  supportsWebhooks Boolean @default(false)
+  // Whether this connector supports polling
+  supportsPolling Boolean  @default(true)
+  // Default sync interval in seconds
+  defaultSyncIntervalSec Int @default(300)
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  configurations  ConnectorConfiguration[]
+}
+
+model ConnectorConfiguration {
+  id              String   @id @default(cuid())
+  connectorDefId  String
+  organizationId  String
+  installationId  String?
+  // Display name for this config instance
+  name            String
+  // Encrypted auth credentials (never plaintext)
+  encryptedConfig String
+  // Sync cursor state (JSON: {lastSyncAt, cursor, ...})
+  syncState       String   @default("{}")
+  // ACTIVE | PAUSED | ERROR
+  status          String   @default("ACTIVE")
+  lastSyncAt      DateTime?
+  lastError       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  connectorDef    ConnectorDefinition @relation(fields: [connectorDefId], references: [id])
+  installation    ExtensionInstallation? @relation(fields: [installationId], references: [id])
+  executions      ConnectorExecution[]
+
+  @@index([organizationId])
+  @@index([connectorDefId])
+}
+
+model ConnectorExecution {
+  id              String   @id @default(cuid())
+  configId        String
+  // POLL | WEBHOOK | SYNC | HEALTH_CHECK
+  kind            String
+  // SUCCESS | FAILED | TIMEOUT | RETRYING
+  status          String
+  durationMs      Int
+  // Number of retries attempted
+  attempts        Int      @default(0)
+  // Request summary (JSON, redacted)
+  request         String   @default("{}")
+  // Response summary (JSON, redacted)
+  response        String   @default("{}")
+  errorMessage     String?
+  startedAt       DateTime @default(now())
+  completedAt     DateTime?
+
+  config          ConnectorConfiguration @relation(fields: [configId], references: [id], onDelete: Cascade)
+
+  @@index([configId])
+  @@index([status])
+  @@index([startedAt])
+}
+
+// --- Workflows ---
+
+model WorkflowDefinition {
+  id              String   @id @default(cuid())
+  organizationId  String
+  name            String
+  description     String?
+  // The workflow DSL (JSON: triggers, steps, conditions, branches)
+  definition      String
+  // The extension that owns this workflow (if any)
+  installationId  String?
+  version         Int      @default(1)
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  executions      WorkflowExecution[]
+
+  @@index([organizationId])
+}
+
+model WorkflowExecution {
+  id              String   @id @default(cuid())
+  workflowDefId   String
+  installationId  String?
+  organizationId  String
+  // RUNNING | COMPLETED | FAILED | CANCELLED | TIMED_OUT
+  status          String   @default("RUNNING")
+  // The trigger that started this execution (JSON)
+  trigger         String   @default("{}")
+  // Execution state (JSON: current step, branches, variables)
+  state           String   @default("{}")
+  // Steps completed (JSON array)
+  stepsCompleted  String   @default("[]")
+  // Steps failed (JSON array)
+  stepsFailed     String   @default("[]")
+  errorMessage    String?
+  startedAt       DateTime @default(now())
+  completedAt     DateTime?
+  durationMs      Int?
+
+  workflowDef     WorkflowDefinition @relation(fields: [workflowDefId], references: [id], onDelete: Cascade)
+  installation    ExtensionInstallation? @relation(fields: [installationId], references: [id])
+
+  @@index([workflowDefId])
+  @@index([organizationId])
+  @@index([status])
+}
+
+// --- Event Replay ---
+
+model EventReplay {
+  id              String   @id @default(cuid())
+  organizationId  String
+  // The event being replayed
+  eventId         String
+  eventType       String
+  // DRY_RUN | EXECUTE
+  mode            String
+  // PENDING | RUNNING | COMPLETED | FAILED
+  status          String   @default("PENDING")
+  // The original event payload (JSON)
+  originalPayload String   @default("{}")
+  // The replay result (JSON)
+  result          String   @default("{}")
+  requestedById   String
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime @default(now())
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([eventType])
+}
+
+// --- Secrets ---
+
+model Secret {
+  id              String   @id @default(cuid())
+  extensionId     String
+  organizationId  String
+  // The secret key name, e.g. "API_KEY", "DATABASE_URL"
+  key             String
+  // Encrypted value (AES-256-GCM, never plaintext)
+  encryptedValue  String
+  // Version number for rotation
+  version         Int      @default(1)
+  // Whether this secret is currently active
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  extension       Extension @relation(fields: [extensionId], references: [id], onDelete: Cascade)
+
+  @@unique([extensionId, organizationId, key])
+  @@index([extensionId])
+  @@index([organizationId])
+}
+
+// --- Packages ---
+
+model Package {
+  id              String   @id @default(cuid())
+  versionId       String
+  publisherId     String
+  // The artifact storage key / URL
+  artifactUrl     String
+  // SHA-256 checksum
+  checksum        String
+  // Ed25519 signature (base64)
+  signature       String?
+  // Size in bytes
+  sizeBytes       Int
+  // Compression format: tar+zstd | tar+gzip
+  format          String   @default("tar+zstd")
+  // Whether the signature has been verified
+  signatureVerified Boolean @default(false)
+  // Whether malware scan passed
+  malwareScanPassed Boolean @default(false)
+  // PUBLISHED | YANKED
+  status          String   @default("PUBLISHED")
+  createdAt       DateTime @default(now())
+
+  version         ExtensionVersion @relation(fields: [versionId], references: [id])
+  publisher       Publisher @relation(fields: [publisherId], references: [id])
+
+  @@index([versionId])
+  @@index([publisherId])
+}
+
+// --- Runtime Health & Logs ---
+
+model RuntimeHealth {
+  id              String   @id @default(cuid())
+  extensionId     String
+  organizationId  String
+  // HEALTHY | DEGRADED | UNHEALTHY
+  status          String
+  // CPU usage in milliseconds (since last report)
+  cpuMs           Int      @default(0)
+  // Memory usage in bytes
+  memoryBytes     Int      @default(0)
+  // Number of active invocations
+  activeInvocations Int    @default(0)
+  // Error count since last report
+  errorCount      Int      @default(0)
+  // Average latency in ms
+  avgLatencyMs    Float    @default(0)
+  reportedAt      DateTime @default(now())
+
+  extension       Extension @relation(fields: [extensionId], references: [id], onDelete: Cascade)
+
+  @@index([extensionId])
+  @@index([organizationId])
+  @@index([reportedAt])
+}
+
+model ExtensionLog {
+  id              String   @id @default(cuid())
+  extensionId     String
+  organizationId  String
+  // TRACE | DEBUG | INFO | WARN | ERROR
+  level           String
+  message         String
+  // JSON metadata
+  metadata        String   @default("{}")
+  // Trace ID for correlation
+  traceId         String?
+  createdAt       DateTime @default(now())
+
+  extension       Extension @relation(fields: [extensionId], references: [id], onDelete: Cascade)
+
+  @@index([extensionId])
+  @@index([organizationId])
+  @@index([level])
+  @@index([createdAt])
+}
