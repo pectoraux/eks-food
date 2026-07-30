@@ -3459,3 +3459,485 @@ model CatalogExport {
   @@index([organizationId])
   @@index([status])
 }
+
+// ===========================================================================
+// Milestone 8 — Customer Platform, Household Management & Food Preference Intelligence
+// ===========================================================================
+// Production customer profiles, households, preferences, pantry, shopping,
+// meal planning, favorites, and reviews. See docs/customer/PLATFORM_ARCHITECTURE.md.
+// ===========================================================================
+
+// --- Household Members ---
+
+model HouseholdMember {
+  id              String   @id @default(cuid())
+  householdId     String
+  customerProfileId String
+  // ADMIN | GUARDIAN | DEPENDENT | GUEST | CAREGIVER
+  role            String   @default("MEMBER")
+  // JSON: member-specific dietary restrictions
+  dietaryRestrictions String @default("[]")
+  // JSON: allergies
+  allergies       String   @default("[]")
+  // JSON: favorite foods
+  favoriteFoods   String   @default("[]")
+  // JSON: disliked foods
+  dislikedFoods   String   @default("[]")
+  // JSON: meal schedule
+  mealSchedule    String   @default("{}")
+  // JSON: nutrition goals
+  nutritionGoals  String   @default("{}")
+  // JSON: food sensitivities
+  sensitivities   String   @default("[]")
+  // JSON: religious requirements
+  religiousReqs   String   @default("[]")
+  // Age group: INFANT | CHILD | TEEN | ADULT | SENIOR
+  ageGroup        String   @default("ADULT")
+  // Whether this member is a dependent (child, etc.)
+  isDependent     Boolean  @default(false)
+  // Whether this member has full access permissions
+  canManageHousehold Boolean @default(false)
+  joinedAt        DateTime @default(now())
+  leftAt          DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([householdId, customerProfileId])
+  @@index([householdId])
+  @@index([customerProfileId])
+}
+
+model HouseholdRelationship {
+  id              String   @id @default(cuid())
+  householdId     String
+  fromMemberId    String
+  toMemberId      String
+  // SPOUSE | PARENT_CHILD | SIBLING | ROOMMATE | CAREGIVER | GUARDIAN_WARD | OTHER
+  type            String
+  // JSON: metadata
+  metadata        String   @default("{}")
+  validFrom       DateTime @default(now())
+  validTo         DateTime?
+  createdAt       DateTime @default(now())
+
+  @@index([householdId])
+  @@index([fromMemberId])
+  @@index([toMemberId])
+}
+
+// --- Customer Preferences ---
+
+model CustomerPreference {
+  id              String   @id @default(cuid())
+  customerProfileId String
+  // JSON: preferred spice level (0-10)
+  spiceLevel      Int      @default(5)
+  // JSON: preferred cooking styles
+  cookingStyles   String   @default("[]")
+  // JSON: preferred meal sizes
+  mealSizes       String   @default("[]")
+  // JSON: preferred preparation methods
+  preparationMethods String @default("[]")
+  // JSON: preferred beverages
+  beverages       String   @default("[]")
+  // JSON: snack preferences
+  snacks          String   @default("[]")
+  // JSON: preferred meal times
+  mealTimes       String   @default("{}")
+  // JSON: restaurant preferences
+  restaurantPrefs String   @default("{}")
+  // JSON: delivery instructions
+  deliveryInstructions String @default("{}")
+  // JSON: communication preferences
+  communicationPrefs String @default("{}")
+  // JSON: accessibility preferences
+  accessibility   String   @default("{}")
+  // JSON: cultural preferences
+  culturalPrefs   String   @default("{}")
+  // JSON: language preferences
+  languages       String   @default("[]")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([customerProfileId])
+}
+
+model CuisinePreference {
+  id              String   @id @default(cuid())
+  customerProfileId String
+  cuisine         String   // e.g. "ghanaian", "nigerian", "vegan"
+  // LIKE | DISLIKE | NEUTRAL
+  sentiment       String   @default("LIKE")
+  // 0-100 preference score
+  score           Int      @default(50)
+  // EXPLICIT | IMPLICIT
+  source          String   @default("EXPLICIT")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([customerProfileId, cuisine])
+  @@index([customerProfileId])
+}
+
+model IngredientPreference {
+  id              String   @id @default(cuid())
+  customerProfileId String
+  ingredientCode  String
+  // LIKE | DISLIKE | NEUTRAL
+  sentiment       String   @default("LIKE")
+  score           Int      @default(50)
+  source          String   @default("EXPLICIT")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([customerProfileId, ingredientCode])
+  @@index([customerProfileId])
+}
+
+model DietaryProfileAssignment {
+  id              String   @id @default(cuid())
+  customerProfileId String
+  dietaryCode     String   // VEGAN | VEGETARIAN | HALAL | KOSHER | GLUTEN_FREE | etc.
+  // How strict this assignment is
+  strictness      String   @default("STRICT") // STRICT | MODERATE | FLEXIBLE
+  // JSON: notes
+  notes           String   @default("{}")
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([customerProfileId, dietaryCode])
+  @@index([customerProfileId])
+}
+
+model AllergyRecord {
+  id              String   @id @default(cuid())
+  customerProfileId String
+  allergenCode    String   // PEANUTS | GLUTEN | DAIRY | etc.
+  // MILD | MODERATE | SEVERE | LIFE_THREATENING
+  severity        String   @default("MODERATE")
+  // JSON: reaction description
+  reactions       String   @default("[]")
+  // Cross-contamination tolerance
+  crossContaminationTolerant Boolean @default(false)
+  // JSON: physician notes
+  physicianNotes  String?
+  // Emergency contact for this allergy
+  emergencyContact String?
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([customerProfileId, allergenCode])
+  @@index([customerProfileId])
+}
+
+model NutritionGoal {
+  id              String   @id @default(cuid())
+  customerProfileId String
+  // WEIGHT_LOSS | WEIGHT_GAIN | MUSCLE_BUILDING | HEART_HEALTH | DIABETIC_CONTROL | SODIUM_REDUCTION | CHOLESTEROL_REDUCTION | PROTEIN_TARGET | HYDRATION | CALORIE_TARGET
+  type            String
+  // JSON: target values { calories, protein, carbs, fat, sodium, water }
+  targets         String   @default("{}")
+  // JSON: current values
+  current         String   @default("{}")
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([customerProfileId])
+}
+
+// --- Address Platform ---
+
+model CustomerAddress {
+  id              String   @id @default(cuid())
+  customerProfileId String?
+  householdId     String?
+  organizationId  String?
+  // HOME | WORK | VACATION | TEMPORARY | DELIVERY
+  type            String   @default("HOME")
+  label           String   @default("Home")
+  line1           String
+  line2           String?
+  city            String
+  region          String?
+  postalCode      String?
+  country         String   @default("Ghana")
+  lat             Float?
+  lng             Float?
+  isPrimary       Boolean  @default(false)
+  isVerified      Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  deliveryInstructions DeliveryInstruction[]
+
+  @@index([customerProfileId])
+  @@index([householdId])
+}
+
+model DeliveryInstruction {
+  id              String   @id @default(cuid())
+  addressId       String
+  // JSON: building access instructions
+  buildingAccess  String   @default("{}")
+  // JSON: landmarks
+  landmarks       String   @default("[]")
+  // JSON: delivery notes
+  notes           String?
+  // Preferred delivery time window
+  preferredTime   String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  address         CustomerAddress @relation(fields: [addressId], references: [id], onDelete: Cascade)
+
+  @@index([addressId])
+}
+
+// --- Meal History ---
+
+model MealHistory {
+  id              String   @id @default(cuid())
+  organizationId  String
+  customerProfileId String?
+  householdId     String?
+  // The meal consumed (recipe ID, restaurant ID, etc.)
+  mealType        String   // RECIPE | RESTAURANT | CUSTOM
+  mealRefId       String?
+  mealName        String
+  // When the meal was consumed
+  consumedAt      DateTime
+  // JSON: modifications made
+  modifications   String   @default("[]")
+  // Rating 1-5
+  rating          Int?
+  // Satisfaction 1-5
+  satisfaction    Int?
+  // JSON: nutrition summary
+  nutritionSummary String  @default("{}")
+  // JSON: who consumed (household member IDs)
+  consumedBy      String   @default("[]")
+  createdAt       DateTime @default(now())
+
+  @@index([customerProfileId])
+  @@index([householdId])
+  @@index([consumedAt])
+}
+
+// --- Meal Planning ---
+
+model MealPlan {
+  id              String   @id @default(cuid())
+  householdId     String
+  organizationId  String
+  name            String
+  // WEEKLY | MONTHLY | SPECIAL_OCCASION | HOLIDAY
+  type            String   @default("WEEKLY")
+  // The week/month this plan covers (ISO date)
+  startDate       DateTime
+  endDate         DateTime
+  // DRAFT | COMMITTED | ACTIVE | COMPLETED | ARCHIVED
+  status          String   @default("DRAFT")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  calendar        MealCalendar[]
+
+  @@index([householdId])
+  @@index([status])
+}
+
+model MealCalendar {
+  id              String   @id @default(cuid())
+  mealPlanId      String
+  // Day of week 1-7 (Mon-Sun)
+  dayOfWeek       Int
+  // BREAKFAST | LUNCH | DINNER | SNACK
+  mealType        String
+  // The recipe/menu item reference
+  recipeId        String?
+  menuItemId      String?
+  mealName        String
+  // JSON: servings, modifications
+  metadata        String   @default("{}")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  mealPlan        MealPlan @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+
+  @@unique([mealPlanId, dayOfWeek, mealType])
+  @@index([mealPlanId])
+}
+
+// --- Shopping Lists ---
+
+model ShoppingList {
+  id              String   @id @default(cuid())
+  householdId     String
+  organizationId  String
+  name            String
+  // ACTIVE | COMPLETED | ARCHIVED
+  status          String   @default("ACTIVE")
+  // Whether this is a recurring list
+  isRecurring     Boolean  @default(false)
+  // JSON: recurrence pattern
+  recurrence      String   @default("{}")
+  createdById     String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  items           ShoppingListItem[]
+
+  @@index([householdId])
+  @@index([status])
+}
+
+model ShoppingListItem {
+  id              String   @id @default(cuid())
+  shoppingListId  String
+  name            String
+  // Ingredient code (if linked to catalog)
+  ingredientCode  String?
+  quantity        Float    @default(1)
+  unit            String   @default("piece")
+  // PENDING | IN_CART | PURCHASED | UNAVAILABLE
+  status          String   @default("PENDING")
+  // Whether this was generated from a recipe
+  recipeGenerated Boolean  @default(false)
+  recipeId        String?
+  // JSON: substitution suggestions
+  substitutions   String   @default("[]")
+  addedById       String
+  completedById   String?
+  completedAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  shoppingList    ShoppingList @relation(fields: [shoppingListId], references: [id], onDelete: Cascade)
+
+  @@index([shoppingListId])
+  @@index([status])
+}
+
+// --- Pantry ---
+
+model Pantry {
+  id              String   @id @default(cuid())
+  householdId     String
+  organizationId  String
+  name            String   @default("Main Pantry")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  items           PantryItem[]
+
+  @@unique([householdId])
+  @@index([householdId])
+}
+
+model PantryItem {
+  id              String   @id @default(cuid())
+  pantryId        String
+  ingredientCode  String?
+  name            String
+  quantity        Float    @default(1)
+  unit            String   @default("g")
+  // IN_STOCK | LOW | EXPIRING | EXPIRED | DEPLETED | REMOVED
+  status          String   @default("IN_STOCK")
+  expirationDate  DateTime?
+  // Preferred brand
+  preferredBrand  String?
+  // JSON: consumption history
+  consumptionHistory String @default("[]")
+  addedById       String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  pantry          Pantry   @relation(fields: [pantryId], references: [id], onDelete: Cascade)
+
+  @@index([pantryId])
+  @@index([status])
+  @@index([expirationDate])
+}
+
+// --- Favorites ---
+
+model CustomerFavorite {
+  id              String   @id @default(cuid())
+  customerProfileId String
+  // RECIPE | RESTAURANT | COOK | VENDOR | MENU | INGREDIENT
+  entityType      String
+  entityId        String
+  // JSON: collection (if part of a named collection)
+  collection      String?
+  notes           String?
+  createdAt       DateTime @default(now())
+
+  @@unique([customerProfileId, entityType, entityId])
+  @@index([customerProfileId])
+  @@index([entityType, entityId])
+}
+
+// --- Reviews & Ratings ---
+
+model Review {
+  id              String   @id @default(cuid())
+  organizationId  String
+  customerProfileId String
+  // RECIPE | MEAL | RESTAURANT | COOK | VENDOR
+  entityType      String
+  entityId        String
+  rating          Int      // 1-5
+  title           String?
+  comment         String?
+  // JSON: photos
+  photos          String   @default("[]")
+  // PENDING | PUBLISHED | MODERATED | REMOVED
+  status          String   @default("PUBLISHED")
+  // JSON: moderation notes
+  moderationNotes String?
+  // Whether the review was reported for abuse
+  reportedAt      DateTime?
+  reportReason    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([entityType, entityId])
+  @@index([status])
+  @@index([customerProfileId])
+}
+
+model Rating {
+  id              String   @id @default(cuid())
+  organizationId  String
+  customerProfileId String
+  entityType      String
+  entityId        String
+  rating          Int      // 1-5
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([customerProfileId, entityType, entityId])
+  @@index([entityType, entityId])
+}
+
+// --- Notification Preferences ---
+
+model CustomerNotificationPreference {
+  id              String   @id @default(cuid())
+  customerProfileId String
+  // JSON: channel preferences { email, sms, push, in_app }
+  channels        String   @default("{}")
+  // JSON: event-type preferences { meal_reminders, shopping_reminders, pantry_expiration, household_invitations, meal_plan_updates }
+  events          String   @default("{}")
+  // Quiet hours
+  quietHoursStart String?  // "22:00"
+  quietHoursEnd   String?  // "07:00"
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([customerProfileId])
+}

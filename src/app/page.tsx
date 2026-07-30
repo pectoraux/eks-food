@@ -8,6 +8,7 @@ import { ConnectorRegistryView, SyncMonitorView, WebhookExplorerView, PollingExp
 import { ProviderRegistryView, ConnectorHealthView, SyncDashboardView, CacheInspectorView, ApiExplorerView } from "@/components/connectors-views";
 import { GraphExplorerView, SearchView, EntityBrowserView } from "@/components/food-domain-views";
 import { CatalogExplorerView, RecipeDebuggerView, MeasurementConverterView, WasteDashboardView } from "@/components/fims-views";
+import { CustomerDashboardView, HouseholdManagerView, PreferenceCenterView, PantryDashboardView, ShoppingListsView, MealPlannerView } from "@/components/customer-views";
 
 /**
  * Eks-Food Developer Console — the visible surface of Milestones 3 + 4.
@@ -33,6 +34,7 @@ function DevConsole() {
         await fetch("/api/v1/seed-connectors", { method: "POST" });
         await fetch("/api/v1/food-domain/seed", { method: "POST" });
         await fetch("/api/v1/fims/seed", { method: "POST" });
+        await fetch("/api/v1/customer/seed", { method: "POST" });
       } catch {
         /* ignore */
       }
@@ -77,6 +79,13 @@ function DevConsole() {
       {view === "fims-recipe" && <RecipeDebuggerView />}
       {view === "fims-measurement" && <MeasurementConverterView />}
       {view === "fims-waste" && <WasteDashboardView />}
+      {/* M8 views */}
+      {view === "cust-dashboard" && <CustomerDashboardView />}
+      {view === "cust-household" && <HouseholdManagerView />}
+      {view === "cust-preference" && <PreferenceCenterView />}
+      {view === "cust-pantry" && <PantryDashboardView />}
+      {view === "cust-shopping" && <ShoppingListsView />}
+      {view === "cust-meal-planner" && <MealPlannerView />}
     </DevShell>
   );
 }

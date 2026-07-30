@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { LayoutDashboard, Puzzle, Plug, GitBranch, ScrollText, ShieldCheck, Terminal, Ticket, Activity, Menu, X, Moon, Sun, RotateCcw, Webhook, RefreshCw, FileJson, Heart, KeyRound, Gauge, Clock, MapPin, Database, Send, Globe, Network, Search, Calculator, Ruler, Trash2, Package } from "lucide-react";
+import { LayoutDashboard, Puzzle, Plug, GitBranch, ScrollText, ShieldCheck, Terminal, Ticket, Activity, Menu, X, Moon, Sun, RotateCcw, Webhook, RefreshCw, FileJson, Heart, KeyRound, Gauge, Clock, MapPin, Database, Send, Globe, Network, Search, Calculator, Ruler, Trash2, Package, Home, ShoppingBag, Calendar, Utensils, Star } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useSeedDeveloper } from "@/lib/dev-api";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-export type DevView = "dashboard" | "extensions" | "connectors" | "workflows" | "events" | "manifests" | "cli" | "publishers" | "logs" | "replay" | "runtime" | "conn-registry" | "sync-monitor" | "webhook-explorer" | "polling-explorer" | "schema-explorer" | "health-dashboard" | "credentials" | "policies" | "provider-registry" | "connector-health" | "sync-dashboard" | "cache-inspector" | "api-explorer" | "graph-explorer" | "fd-search" | "entity-browser" | "fims-catalog" | "fims-recipe" | "fims-measurement" | "fims-waste";
+export type DevView = "dashboard" | "extensions" | "connectors" | "workflows" | "events" | "manifests" | "cli" | "publishers" | "logs" | "replay" | "runtime" | "conn-registry" | "sync-monitor" | "webhook-explorer" | "polling-explorer" | "schema-explorer" | "health-dashboard" | "credentials" | "policies" | "provider-registry" | "connector-health" | "sync-dashboard" | "cache-inspector" | "api-explorer" | "graph-explorer" | "fd-search" | "entity-browser" | "fims-catalog" | "fims-recipe" | "fims-measurement" | "fims-waste" | "cust-dashboard" | "cust-household" | "cust-preference" | "cust-pantry" | "cust-shopping" | "cust-meal-planner";
 
 const NAV: { id: DevView; label: string; icon: typeof Puzzle; group: string }[] = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, group: "Overview" },
@@ -42,6 +42,12 @@ const NAV: { id: DevView; label: string; icon: typeof Puzzle; group: string }[] 
   { id: "fims-recipe", label: "Recipe Debugger", icon: Calculator, group: "FIMS" },
   { id: "fims-measurement", label: "Measurement Converter", icon: Ruler, group: "FIMS" },
   { id: "fims-waste", label: "Waste Dashboard", icon: Trash2, group: "FIMS" },
+  { id: "cust-dashboard", label: "Customer Dashboard", icon: Home, group: "Customer" },
+  { id: "cust-household", label: "Household Manager", icon: Home, group: "Customer" },
+  { id: "cust-preference", label: "Preference Center", icon: Heart, group: "Customer" },
+  { id: "cust-pantry", label: "Pantry Dashboard", icon: Utensils, group: "Customer" },
+  { id: "cust-shopping", label: "Shopping Lists", icon: ShoppingBag, group: "Customer" },
+  { id: "cust-meal-planner", label: "Meal Planner", icon: Calendar, group: "Customer" },
 ];
 
 export function DevShell({ active, onNavigate, children }: { active: DevView; onNavigate: (v: DevView) => void; children: ReactNode }) {
