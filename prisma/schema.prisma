@@ -22,24 +22,35 @@ model Organization {
   name          String
   country       String
   baseCurrency  String   @default("GHS")
-  status        String   @default("ACTIVE") // ACTIVE | SUSPENDED
+  status        String   @default("ACTIVE") // ACTIVE | SUSPENDED | PENDING_VERIFICATION
+  // Optional: links to the extensible OrganizationType registry
+  typeId        String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  users         User[]
-  cooks         Cook[]
-  customers     Customer[]
-  services      Service[]
-  mealCategories MealCategory[]
-  regions       Region[]
-  bookings      Booking[]
-  payments      PayswapPayment[]
-  transfers     PayswapTransfer[]
-  inspections   Inspection[]
-  demandSignals DemandSignal[]
-  auditLogs     AuditLog[]
-  featureFlags  FeatureFlag[]
-  pricingRules  PricingRule[]
+  type             OrganizationType?  @relation(fields: [typeId], references: [id])
+  users            User[]
+  cooks            Cook[]
+  customers        Customer[]
+  services         Service[]
+  mealCategories   MealCategory[]
+  regions          Region[]
+  bookings         Booking[]
+  payments         PayswapPayment[]
+  transfers        PayswapTransfer[]
+  inspections      Inspection[]
+  demandSignals    DemandSignal[]
+  auditLogs        AuditLog[]
+  featureFlags     FeatureFlag[]
+  pricingRules     PricingRule[]
+  memberships      Membership[]
+  teams            Team[]
+  invitations      Invitation[]
+  tenantConfig     TenantConfiguration?
+  flagAssignments  FeatureFlagAssignment[]
+  sessions         Session[]
+  verificationRequests VerificationRequest[]
+  notifications    NotificationLog[]
 }
 
 model User {
@@ -48,13 +59,18 @@ model User {
   email            String   @unique
   name             String
   phone            String?
-  // Comma-separated role set. RBAC enforced at API layer.
-  // CUSTOMER | COOK | MANAGER | INSPECTOR | RIDER | RESTAURANT | SUPPLIER | ADMIN | SUPER_ADMIN | SUPPORT
+  // Legacy comma-separated role set (kept for M1 compat; M2 uses Membership+Role).
   roles            String   @default("CUSTOMER")
-  status           String   @default("ACTIVE") // ACTIVE | SUSPENDED | PENDING
+  // ACTIVE | SUSPENDED | PENDING | LOCKED | DELETED
+  status           String   @default("ACTIVE")
   avatarUrl        String?
   locale           String   @default("en")
   payswapCustomerId String? // Payswap Customer reference (no card data)
+  // Brute-force protection: increments on failed login, resets on success
+  failedLoginAttempts Int   @default(0)
+  lockedUntil      DateTime?
+  lastLoginAt      DateTime?
+  deletedAt        DateTime? // soft delete
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -62,8 +78,19 @@ model User {
   customerProfile  Customer?
   cookProfile      Cook?
   auditLogs        AuditLog[]
+  identities       Identity[]
+  sessions         Session[]
+  devices          Device[]
+  memberships      Membership[]
+  mfaConfigs       MFAConfiguration[]
+  recoveryCodes    RecoveryCode[]
+  loginHistory     LoginHistory[]
+  preferences      UserPreference?
+  verificationRequests VerificationRequest[]
+  notifications    NotificationLog[]
 
   @@index([organizationId])
+  @@index([status])
 }
 
 // ---------------------------------------------------------------------------
@@ -493,3 +520,420 @@ model EventOutbox {
 //   • organizationId: String  (multi-tenant isolation)
 // These columns are added per-model in their respective milestones; the
 // shared kernel types (@eks/common) define the matching TS contracts.
+
+// ===========================================================================
+// Milestone 2 — Identity & Access Management (IAM)
+// ===========================================================================
+// Every tenant-scoped model carries `organizationId` for strict multi-tenant
+// isolation. Repository + policy layers enforce it; no cross-tenant access is
+// possible by construction. See docs/identity/MULTI_TENANCY.md.
+// ===========================================================================
+
+// --- Organization Types (extensible — data, not code) ---
+
+model OrganizationType {
+  id          String   @id @default(cuid())
+  code        String   @unique // HOUSEHOLD | RESTAURANT | VENDOR | SUPPLIER | CATERING | FRANCHISE | INSPECTION_AGENCY | LOGISTICS | ENTERPRISE
+  name        String
+  description String?
+  active      Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  organizations Organization[]
+}
+
+// --- Identity (a User may have multiple Identities — email, phone, passkey, social) ---
+
+model Identity {
+  id              String   @id @default(cuid())
+  userId          String
+  // EMAIL | PHONE | PASSKEY | MAGIC_LINK | GOOGLE | APPLE | SSO
+  provider        String
+  // The unique identifier for this identity at the provider (email, phone, subject)
+  subject         String
+  // Hashed credential (password hash, or null for passwordless)
+  credentialHash  String?
+  // JSON: provider-specific metadata (e.g. WebAuthn public key, OAuth profile)
+  metadata        String   @default("{}")
+  verified        Boolean  @default(false)
+  verifiedAt      DateTime?
+  lastUsedAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, subject])
+  @@index([userId])
+  @@index([provider, subject])
+}
+
+// --- Extended User fields for IAM (existing User model gains relations) ---
+
+// NOTE: The existing User model is augmented via Prisma relation additions below.
+
+// --- Sessions & Devices ---
+
+model Session {
+  id              String   @id @default(cuid())
+  userId          String
+  organizationId  String   // active tenant for this session
+  // Opaque session token (hashed in storage; the raw token is the cookie value)
+  tokenHash       String   @unique
+  refreshHash     String?  @unique
+  refreshFamily   String?  // detects refresh-token reuse (replay attack mitigation)
+  deviceFingerprint String?
+  userAgent       String?
+  ipAddress       String?
+  // LOW | MEDIUM | HIGH
+  riskScore       String   @default("LOW")
+  trustedDevice   Boolean  @default(false)
+  expiresAt       DateTime
+  refreshExpiresAt DateTime?
+  lastActiveAt    DateTime @default(now())
+  revokedAt       DateTime?
+  revokeReason    String?
+  createdAt       DateTime @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([organizationId])
+  @@index([tokenHash])
+}
+
+model Device {
+  id              String   @id @default(cuid())
+  userId          String
+  fingerprint     String
+  label           String?  // "MacBook Pro — Accra"
+  platform        String?
+  trusted         Boolean  @default(false)
+  firstSeenAt     DateTime @default(now())
+  lastSeenAt      DateTime @default(now())
+  revokedAt       DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, fingerprint])
+  @@index([userId])
+}
+
+// --- Roles, Permissions, Policies ---
+
+model Role {
+  id              String   @id @default(cuid())
+  organizationId  String?  // null = global role; set = org-scoped role
+  code            String   // SUPER_ADMIN | OWNER | ADMIN | MANAGER | MEMBER | VIEWER | custom
+  name            String
+  description     String?
+  // GLOBAL | ORGANIZATION | TEAM
+  scope           String   @default("ORGANIZATION")
+  isSystem        Boolean  @default(false) // system roles cannot be deleted
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  memberships     Membership[]
+  invitations     Invitation[]
+  rolePermissions RolePermission[]
+  teamMembers     TeamMember[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+}
+
+model Permission {
+  id              String   @id @default(cuid())
+  code            String   @unique // booking.create | admin.config | ...
+  name            String
+  description     String?
+  // The resource group for the permission explorer
+  resource        String   // booking | cook | payment | admin | ...
+  createdAt       DateTime @default(now())
+
+  rolePermissions RolePermission[]
+  policies        Policy[]
+}
+
+model RolePermission {
+  id           String   @id @default(cuid())
+  roleId       String
+  permissionId String
+  createdAt    DateTime @default(now())
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+}
+
+model Policy {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  // The permission this policy governs
+  permissionId    String
+  // JSON ABAC rules: { ownership: true, hierarchy: "ORG", scope: "REGION", timeWindow: {...}, features: [...] }
+  rules           String   @default("{}")
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@index([permissionId])
+}
+
+// --- Membership & Teams ---
+
+model Membership {
+  id              String   @id @default(cuid())
+  userId          String
+  organizationId  String
+  roleId          String
+  // ACTIVE | SUSPENDED | REVOKED
+  status          String   @default("ACTIVE")
+  invitedById     String?
+  acceptedAt      DateTime?
+  suspendedAt     DateTime?
+  expiresAt       DateTime? // temporary access
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  role         Role         @relation(fields: [roleId], references: [id])
+  teamMembers  TeamMember[]
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+  @@index([userId])
+}
+
+model Team {
+  id              String   @id @default(cuid())
+  organizationId  String
+  name            String
+  description     String?
+  // KITCHEN | PROCUREMENT | DELIVERY | INSPECTION | OPERATIONS | FINANCE | HR | custom
+  kind            String   @default("OPERATIONS")
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  members TeamMember[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+}
+
+model TeamMember {
+  id           String   @id @default(cuid())
+  teamId       String
+  membershipId String
+  roleId       String?  // optional team-level role override
+  createdAt    DateTime @default(now())
+
+  team       Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  role       Role?      @relation(fields: [roleId], references: [id])
+
+  @@unique([teamId, membershipId])
+  @@index([teamId])
+}
+
+// --- Invitations ---
+
+model Invitation {
+  id              String   @id @default(cuid())
+  organizationId  String
+  email           String
+  invitedById     String
+  roleId          String
+  // PENDING | ACCEPTED | REVOKED | EXPIRED
+  status          String   @default("PENDING")
+  tokenHash       String   @unique
+  expiresAt       DateTime
+  acceptedAt      DateTime?
+  acceptedByUserId String?
+  revokedAt       DateTime?
+  createdAt       DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id])
+
+  @@index([organizationId])
+  @@index([email])
+  @@index([status])
+}
+
+// --- MFA ---
+
+model MFAConfiguration {
+  id              String   @id @default(cuid())
+  userId          String
+  // TOTP | PASSKEY | SMS | EMAIL
+  method          String
+  // TOTP: base32 secret (encrypted); PASSKEY: WebAuthn credential ID JSON
+  secret          String
+  // Encrypted at rest with @eks/security
+  encrypted       Boolean  @default(true)
+  enabled         Boolean  @default(false)
+  enrolledAt      DateTime?
+  lastUsedAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, method])
+  @@index([userId])
+}
+
+model RecoveryCode {
+  id              String   @id @default(cuid())
+  userId          String
+  // Hashed (Argon2) — never store plaintext recovery codes
+  codeHash        String   @unique
+  usedAt          DateTime?
+  usedFromIp      String?
+  createdAt       DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// --- Login History & Audit (extends existing AuditLog) ---
+
+model LoginHistory {
+  id              String   @id @default(cuid())
+  userId          String
+  organizationId  String?
+  // SUCCESS | FAILED | LOCKED | MFA_CHALLENGED | MFA_FAILED
+  result          String
+  method          String   // PASSWORD | MAGIC_LINK | PASSKEY | SSO
+  ipAddress       String?
+  userAgent       String?
+  deviceFingerprint String?
+  failureReason   String?
+  createdAt       DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([result])
+}
+
+// --- User Preferences & Tenant Configuration ---
+
+model UserPreference {
+  id              String   @id @default(cuid())
+  userId          String
+  language        String   @default("en")
+  timezone        String   @default("Africa/Accra")
+  dateFormat      String   @default("YYYY-MM-DD")
+  currency        String   @default("GHS")
+  // accessibility prefs as JSON
+  accessibility   String   @default("{}")
+  emailNotifications Boolean @default(true)
+  smsNotifications   Boolean @default(false)
+  pushNotifications  Boolean @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId])
+}
+
+model TenantConfiguration {
+  id              String   @id @default(cuid())
+  organizationId  String   @unique
+  // JSON: branding {primaryColor, logoUrl, ...}
+  branding        String   @default("{}")
+  // JSON: localization {defaultLanguage, supportedLanguages, ...}
+  localization    String   @default("{}")
+  // JSON: feature flag overrides
+  featureFlags    String   @default("{}")
+  // JSON: custom preferences
+  preferences     String   @default("{}")
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+model FeatureFlagAssignment {
+  id              String   @id @default(cuid())
+  organizationId  String
+  flagKey         String
+  enabled         Boolean
+  rolloutPercent  Int      @default(100)
+  // JSON: per-user overrides
+  overrides       String   @default("{}")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, flagKey])
+  @@index([organizationId])
+}
+
+// --- Verification framework (interface-only in M2) ---
+
+model VerificationRequest {
+  id              String   @id @default(cuid())
+  userId          String
+  organizationId  String?
+  // GOVERNMENT_ID | BUSINESS | ADDRESS | FOOD_SAFETY_LICENSE | PROFESSIONAL_CERT
+  kind            String
+  provider        String   @default("manual")
+  // PENDING | IN_REVIEW | APPROVED | REJECTED | EXPIRED
+  status          String   @default("PENDING")
+  // JSON: provider-specific request payload (references only — never raw documents)
+  payload         String   @default("{}")
+  // JSON: provider response (status, score, reference)
+  result          String   @default("{}")
+  submittedAt     DateTime @default(now())
+  completedAt     DateTime?
+  expiresAt       DateTime?
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([organizationId])
+  @@index([status])
+}
+
+// --- Notification log (for audit + user notification center) ---
+
+model NotificationLog {
+  id              String   @id @default(cuid())
+  userId          String?
+  organizationId  String?
+  // EMAIL | SMS | PUSH | IN_APP
+  channel         String
+  templateCode    String
+  // PENDING | SENT | DELIVERED | FAILED
+  status          String   @default("PENDING")
+  // JSON: rendered content + provider reference
+  payload         String   @default("{}")
+  createdAt       DateTime @default(now())
+  sentAt          DateTime?
+
+  user         User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([organizationId])
+  @@index([status])
+}

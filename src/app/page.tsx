@@ -1,32 +1,49 @@
 "use client";
 
-import { useState } from "react";
-import { FoundationShell, type ConsoleView } from "@/components/foundation-shell";
+import { useState, useEffect } from "react";
+import { IAMShell, type IAMView } from "@/components/iam-shell";
 import { Providers } from "@/components/providers";
-import { OverviewView, PackagesView, HealthView, EventsView, WorkersView, FlagsView, DocsView } from "@/components/foundation-views";
+import { DashboardView, LoginView, UsersView, OrganizationsView, RolesView, PermissionsView, SessionsView, AuditView, InvitationsView, ProfileView, MFAView } from "@/components/iam-views";
 
 /**
- * Platform Foundation Console — the visible surface of Milestone 1.
- *
- * The bootstrap (config load + logger init) happens server-side inside the
- * `/api/v1/*` route handlers, which import `@eks/config` and
- * `@eks/observability` (Node-only modules). This client component only renders
- * the console UI and consumes the foundation APIs via TanStack Query.
+ * Eks-Food IAM Console — the visible surface of Milestone 2.
+ * Admin Console + User Portal for the enterprise Identity & Access platform.
  */
 export default function Home() {
-  const [view, setView] = useState<ConsoleView>("overview");
-
   return (
     <Providers>
-      <FoundationShell active={view} onNavigate={(v) => setView(v)}>
-        {view === "overview" && <OverviewView onNavigate={(v) => setView(v as ConsoleView)} />}
-        {view === "packages" && <PackagesView />}
-        {view === "health" && <HealthView />}
-        {view === "events" && <EventsView />}
-        {view === "workers" && <WorkersView />}
-        {view === "flags" && <FlagsView />}
-        {view === "docs" && <DocsView />}
-      </FoundationShell>
+      <IAMConsole />
     </Providers>
+  );
+}
+
+function IAMConsole() {
+  const [view, setView] = useState<IAMView>("dashboard");
+
+  // Auto-seed the IAM platform on first load so the console has data.
+  useEffect(() => {
+    (async () => {
+      try {
+        await fetch("/api/v1/seed-identity", { method: "POST" });
+      } catch {
+        /* ignore — user can seed manually */
+      }
+    })();
+  }, []);
+
+  return (
+    <IAMShell active={view} onNavigate={(v) => setView(v)}>
+      {view === "dashboard" && <DashboardView onNavigate={(v) => setView(v as IAMView)} />}
+      {view === "login" && <LoginView onNavigate={(v) => setView(v as IAMView)} />}
+      {view === "users" && <UsersView />}
+      {view === "organizations" && <OrganizationsView />}
+      {view === "roles" && <RolesView />}
+      {view === "permissions" && <PermissionsView />}
+      {view === "sessions" && <SessionsView />}
+      {view === "audit" && <AuditView />}
+      {view === "invitations" && <InvitationsView />}
+      {view === "profile" && <ProfileView />}
+      {view === "mfa" && <MFAView />}
+    </IAMShell>
   );
 }

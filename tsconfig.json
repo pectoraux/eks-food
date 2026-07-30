@@ -40,6 +40,12 @@
       "@eks/payments": ["./src/packages/payments/index.ts"],
       "@eks/testing": ["./src/packages/testing/index.ts"],
       "@eks/domain": ["./src/packages/domain/index.ts"],
+      "@eks/identity": ["./src/packages/identity/index.ts"],
+      "@eks/auth": ["./src/packages/auth/index.ts"],
+      "@eks/authorization": ["./src/packages/authorization/index.ts"],
+      "@eks/organizations": ["./src/packages/organizations/index.ts"],
+      "@eks/notifications": ["./src/packages/notifications/index.ts"],
+      "@eks/verification": ["./src/packages/verification/index.ts"],
       "@eks/*": ["./src/packages/*"]
     }
   },
