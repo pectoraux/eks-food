@@ -447,3 +447,49 @@ model AuditLog {
   @@index([organizationId])
   @@index([entityType, entityId])
 }
+
+// ---------------------------------------------------------------------------
+// Event Infrastructure — transactional outbox (foundation)
+// ---------------------------------------------------------------------------
+// The outbox guarantees at-least-once event delivery without dual-write
+// inconsistency: domain events are staged in the same DB transaction as the
+// aggregate write, then a worker relays them to the event bus.
+//
+// PostgreSQL-ready: in production, swap `provider = "sqlite"` for
+// `provider = "postgresql"` and add `@db.Uuid` / `@db.Timestamptz` annotations.
+// The column shapes are deliberately provider-agnostic.
+
+model EventOutbox {
+  id             String   @id @default(cuid())
+  organizationId String
+  // Event envelope
+  eventId        String   @unique
+  eventType      String
+  aggregateType  String
+  aggregateId    String
+  payload        String   @default("{}") // JSON
+  metadata       String   @default("{}") // JSON: correlation/causation/trace IDs
+  version        Int      @default(1)
+  // Relay lifecycle: PENDING → PUBLISHED | FAILED
+  status         String   @default("PENDING")
+  attempts       Int      @default(0)
+  lastError      String?
+  createdAt      DateTime @default(now())
+  publishedAt    DateTime?
+
+  @@index([organizationId, status, createdAt])
+  @@index([aggregateType, aggregateId])
+}
+
+// ---------------------------------------------------------------------------
+// Foundation conventions (see docs/DATABASE.md)
+// ---------------------------------------------------------------------------
+// Every business model in future milestones MUST follow:
+//   • id:        UUID @id @default(uuid())       (PostgreSQL) / cuid() (SQLite)
+//   • createdAt: DateTime @default(now())
+//   • updatedAt: DateTime @updatedAt
+//   • deletedAt: DateTime?                        (soft delete)
+//   • version:   Int @default(1)                  (optimistic locking)
+//   • organizationId: String  (multi-tenant isolation)
+// These columns are added per-model in their respective milestones; the
+// shared kernel types (@eks/common) define the matching TS contracts.

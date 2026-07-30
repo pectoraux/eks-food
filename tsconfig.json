@@ -26,7 +26,21 @@
     "paths": {
       "@/*": [
         "./src/*"
-      ]
+      ],
+      "@eks/common": ["./src/packages/common/index.ts"],
+      "@eks/config": ["./src/packages/config/index.ts"],
+      "@eks/errors": ["./src/packages/errors/index.ts"],
+      "@eks/observability": ["./src/packages/observability/index.ts"],
+      "@eks/events": ["./src/packages/events/index.ts"],
+      "@eks/cache": ["./src/packages/cache/index.ts"],
+      "@eks/features": ["./src/packages/features/index.ts"],
+      "@eks/api": ["./src/packages/api/index.ts"],
+      "@eks/workers": ["./src/packages/workers/index.ts"],
+      "@eks/security": ["./src/packages/security/index.ts"],
+      "@eks/payments": ["./src/packages/payments/index.ts"],
+      "@eks/testing": ["./src/packages/testing/index.ts"],
+      "@eks/domain": ["./src/packages/domain/index.ts"],
+      "@eks/*": ["./src/packages/*"]
     }
   },
   "include": [

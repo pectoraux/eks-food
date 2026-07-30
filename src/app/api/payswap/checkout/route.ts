@@ -53,11 +53,12 @@ export async function POST(req: NextRequest) {
   }
 
   // In production this would be a signed Payswap-hosted URL.
-  const url = `/checkout?session=${paymentId}`;
+  const resolvedPaymentId = paymentId ?? intent.payswapId;
+  const url = `/checkout?session=${resolvedPaymentId}`;
   const session = {
-    payswapId: `cs_${paymentId.slice(3, 13)}`,
+    payswapId: `cs_${resolvedPaymentId.slice(3, 13)}`,
     url,
-    paymentId,
+    paymentId: resolvedPaymentId,
     status: "REQUIRES_ACTION" as const,
   };
 

@@ -1,62 +1,32 @@
 "use client";
 
-import { useEffect } from "react";
-import { AppShell } from "@/components/app-shell";
+import { useState } from "react";
+import { FoundationShell, type ConsoleView } from "@/components/foundation-shell";
 import { Providers } from "@/components/providers";
-import { useAppStore } from "@/lib/store";
-import { useSeed } from "@/lib/api";
-import { OverviewModule } from "@/components/modules/overview-module";
-import { BookACookModule } from "@/components/modules/book-a-cook-module";
-import { CookWorkspaceModule } from "@/components/modules/cook-workspace-module";
-import { AdminConfigModule } from "@/components/modules/admin-config-module";
-import { FoodIntelligenceModule } from "@/components/modules/food-intelligence-module";
-import { AIAssistantModule } from "@/components/modules/ai-assistant-module";
+import { OverviewView, PackagesView, HealthView, EventsView, WorkersView, FlagsView, DocsView } from "@/components/foundation-views";
 
+/**
+ * Platform Foundation Console — the visible surface of Milestone 1.
+ *
+ * The bootstrap (config load + logger init) happens server-side inside the
+ * `/api/v1/*` route handlers, which import `@eks/config` and
+ * `@eks/observability` (Node-only modules). This client component only renders
+ * the console UI and consumes the foundation APIs via TanStack Query.
+ */
 export default function Home() {
+  const [view, setView] = useState<ConsoleView>("overview");
+
   return (
     <Providers>
-      <AppShell>
-        <ModuleRouter />
-      </AppShell>
+      <FoundationShell active={view} onNavigate={(v) => setView(v)}>
+        {view === "overview" && <OverviewView onNavigate={(v) => setView(v as ConsoleView)} />}
+        {view === "packages" && <PackagesView />}
+        {view === "health" && <HealthView />}
+        {view === "events" && <EventsView />}
+        {view === "workers" && <WorkersView />}
+        {view === "flags" && <FlagsView />}
+        {view === "docs" && <DocsView />}
+      </FoundationShell>
     </Providers>
   );
-}
-
-function ModuleRouter() {
-  const activeModule = useAppStore((s) => s.activeModule);
-  const seed = useSeed();
-
-  // Auto-seed on first load if the platform isn't initialised.
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/seed");
-        const data = await res.json();
-        if (!cancelled && data?.seeded === false) {
-          seed.mutate(false);
-        }
-      } catch {
-        /* ignore — user can seed manually */
-      }
-    })();
-    return () => { cancelled = true; };
-  }, []);
-
-  switch (activeModule) {
-    case "overview":
-      return <OverviewModule />;
-    case "book":
-      return <BookACookModule />;
-    case "cook":
-      return <CookWorkspaceModule />;
-    case "admin":
-      return <AdminConfigModule />;
-    case "intelligence":
-      return <FoodIntelligenceModule />;
-    case "assistant":
-      return <AIAssistantModule />;
-    default:
-      return <OverviewModule />;
-  }
 }
