@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { LayoutDashboard, Puzzle, Plug, GitBranch, ScrollText, ShieldCheck, Terminal, Ticket, Activity, Menu, X, Moon, Sun, RotateCcw, Webhook, RefreshCw, FileJson, Heart, KeyRound, Gauge, Clock, MapPin, Database, Send, Globe } from "lucide-react";
+import { LayoutDashboard, Puzzle, Plug, GitBranch, ScrollText, ShieldCheck, Terminal, Ticket, Activity, Menu, X, Moon, Sun, RotateCcw, Webhook, RefreshCw, FileJson, Heart, KeyRound, Gauge, Clock, MapPin, Database, Send, Globe, Network, Search } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useSeedDeveloper } from "@/lib/dev-api";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-export type DevView = "dashboard" | "extensions" | "connectors" | "workflows" | "events" | "manifests" | "cli" | "publishers" | "logs" | "replay" | "runtime" | "conn-registry" | "sync-monitor" | "webhook-explorer" | "polling-explorer" | "schema-explorer" | "health-dashboard" | "credentials" | "policies" | "provider-registry" | "connector-health" | "sync-dashboard" | "cache-inspector" | "api-explorer";
+export type DevView = "dashboard" | "extensions" | "connectors" | "workflows" | "events" | "manifests" | "cli" | "publishers" | "logs" | "replay" | "runtime" | "conn-registry" | "sync-monitor" | "webhook-explorer" | "polling-explorer" | "schema-explorer" | "health-dashboard" | "credentials" | "policies" | "provider-registry" | "connector-health" | "sync-dashboard" | "cache-inspector" | "api-explorer" | "graph-explorer" | "fd-search" | "entity-browser";
 
 const NAV: { id: DevView; label: string; icon: typeof Puzzle; group: string }[] = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, group: "Overview" },
@@ -35,6 +35,9 @@ const NAV: { id: DevView; label: string; icon: typeof Puzzle; group: string }[] 
   { id: "sync-dashboard", label: "Sync Dashboard", icon: RefreshCw, group: "Connectors" },
   { id: "cache-inspector", label: "Cache Inspector", icon: Database, group: "Connectors" },
   { id: "api-explorer", label: "API Explorer", icon: Send, group: "Connectors" },
+  { id: "graph-explorer", label: "Graph Explorer", icon: Network, group: "Food Domain" },
+  { id: "fd-search", label: "Search", icon: Search, group: "Food Domain" },
+  { id: "entity-browser", label: "Entity Browser", icon: Database, group: "Food Domain" },
 ];
 
 export function DevShell({ active, onNavigate, children }: { active: DevView; onNavigate: (v: DevView) => void; children: ReactNode }) {

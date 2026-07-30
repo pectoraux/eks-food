@@ -2169,3 +2169,773 @@ model CommunicationProvider {
   @@index([organizationId])
   @@index([channel])
 }
+
+// ===========================================================================
+// Milestone 6 — Core Food Domain, Canonical Data Model & Food Intelligence Graph
+// ===========================================================================
+// The canonical domain model + Food Intelligence Graph. Every subsystem reasons
+// over this shared model. See docs/food-domain/DOMAIN_MODEL_REFERENCE.md.
+// ===========================================================================
+
+// --- Geographic Hierarchy ---
+
+model Country {
+  id        String   @id @default(cuid())
+  code      String   @unique // ISO 3166-1 alpha-2: GH, NG, KE, ZA
+  name      String
+  nameLocalized String @default("{}") // JSON: {en, tw, ha, ...}
+  currency  String   @default("GHS")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  regions     GeoRegion[]
+  cities      City[]
+  neighborhoods Neighborhood[]
+}
+
+model GeoRegion {
+  id        String   @id @default(cuid())
+  countryId String
+  code      String   // e.g. "greater-accra"
+  name      String
+  nameLocalized String @default("{}")
+  type      String   @default("PROVINCE") // PROVINCE | STATE | TERRITORY
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  country      Country @relation(fields: [countryId], references: [id])
+  cities       City[]
+
+  @@unique([countryId, code])
+  @@index([countryId])
+}
+
+model City {
+  id        String   @id @default(cuid())
+  countryId String
+  regionId  String?
+  code      String
+  name      String
+  nameLocalized String @default("{}")
+  lat       Float?
+  lng       Float?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  country        Country @relation(fields: [countryId], references: [id])
+  region         GeoRegion? @relation(fields: [regionId], references: [id])
+  neighborhoods  Neighborhood[]
+
+  @@unique([countryId, code])
+  @@index([countryId])
+  @@index([regionId])
+}
+
+model Neighborhood {
+  id        String   @id @default(cuid())
+  cityId    String
+  countryId String
+  name      String
+  nameLocalized String @default("{}")
+  // Delivery zone metadata
+  deliveryZoneCode String?
+  postalCode String?
+  lat       Float?
+  lng       Float?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  city     City     @relation(fields: [cityId], references: [id])
+  country  Country  @relation(fields: [countryId], references: [id])
+
+  @@index([cityId])
+  @@index([countryId])
+}
+
+// --- Customer Domain ---
+
+model Household {
+  id              String   @id @default(cuid())
+  organizationId  String
+  name            String
+  // JSON: { address, lat, lng, neighborhoodId }
+  address         String   @default("{}")
+  // ACTIVE | INACTIVE
+  status          String   @default("ACTIVE")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  members         CustomerProfile[]
+
+  @@index([organizationId])
+}
+
+model CustomerProfile {
+  id              String   @id @default(cuid())
+  organizationId  String
+  householdId     String?
+  userId          String?
+  name            String
+  email           String?
+  phone           String?
+  // JSON: dietary preferences (vegan, vegetarian, etc.)
+  dietaryPrefs    String   @default("[]")
+  // JSON: allergies
+  allergies       String   @default("[]")
+  // JSON: favorite cuisines
+  favoriteCuisines String  @default("[]")
+  // JSON: favorite meals
+  favoriteMeals   String   @default("[]")
+  // JSON: nutrition goals
+  nutritionGoals  String   @default("{}")
+  // JSON: cooking preferences
+  cookingPrefs    String   @default("{}")
+  // ACTIVE | INACTIVE
+  status          String   @default("ACTIVE")
+  version         Int      @default(1)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  household       Household? @relation(fields: [householdId], references: [id])
+
+  @@index([organizationId])
+  @@index([householdId])
+}
+
+// --- Cook Domain ---
+
+model CookProfile {
+  id              String   @id @default(cuid())
+  organizationId  String
+  userId          String?
+  name            String
+  bio             String   @default("")
+  // JSON: cuisine specialties
+  cuisines        String   @default("[]")
+  // JSON: languages
+  languages       String   @default("[]")
+  // JSON: service areas (neighborhood IDs)
+  serviceAreas    String   @default("[]")
+  // JSON: working hours
+  workingHours    String   @default("{}")
+  // JSON: kitchen associations
+  kitchenAssociations String @default("[]")
+  // JSON: experience
+  experience      String   @default("{}")
+  // JSON: qualifications
+  qualifications  String   @default("[]")
+  // JSON: availability profile
+  availability    String   @default("{}")
+  // PENDING | ACTIVE | SUSPENDED | INACTIVE
+  status          String   @default("PENDING")
+  rating          Float    @default(5.0)
+  version         Int      @default(1)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  @@index([organizationId])
+  @@index([status])
+}
+
+// --- Restaurant Domain ---
+
+model Restaurant {
+  id              String   @id @default(cuid())
+  organizationId  String
+  name            String
+  description     String?
+  // JSON: locations (multiple)
+  locations       String   @default("[]")
+  // JSON: operating hours
+  operatingHours  String   @default("{}")
+  // JSON: kitchen capacity metadata
+  kitchenCapacity String   @default("{}")
+  // JSON: cuisines
+  cuisines        String   @default("[]")
+  // JSON: seating
+  seating         String   @default("{}")
+  // JSON: facilities
+  facilities      String   @default("[]")
+  // JSON: brand relationships
+  brands          String   @default("[]")
+  // franchise parent (if part of a franchise)
+  franchiseParentId String?
+  // PENDING | ACTIVE | SUSPENDED | INACTIVE
+  status          String   @default("PENDING")
+  version         Int      @default(1)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  menus           Menu[]
+
+  @@index([organizationId])
+  @@index([status])
+}
+
+// --- Kitchen Domain ---
+
+model Kitchen {
+  id              String   @id @default(cuid())
+  organizationId  String
+  name            String
+  // COMMERCIAL | SHARED | HOME | CLOUD | EVENT
+  type            String   @default("COMMERCIAL")
+  // JSON: capacity { stations, maxCooks, mealsPerHour }
+  capacity        String   @default("{}")
+  // JSON: equipment IDs
+  equipment       String   @default("[]")
+  // JSON: certifications
+  certifications  String   @default("[]")
+  // JSON: ownership
+  ownership       String   @default("{}")
+  // JSON: utilization metadata
+  utilization     String   @default("{}")
+  // JSON: availability
+  availability    String   @default("{}")
+  // JSON: facilities
+  facilities      String   @default("[]")
+  // JSON: location { address, lat, lng }
+  location        String   @default("{}")
+  // ACTIVE | INACTIVE | MAINTENANCE
+  status          String   @default("ACTIVE")
+  version         Int      @default(1)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  @@index([organizationId])
+  @@index([type])
+  @@index([status])
+}
+
+// --- Ingredient Domain ---
+
+model Ingredient {
+  id              String   @id @default(cuid())
+  organizationId  String?
+  // Globally unique ingredient code (e.g. "ING-RICE-001")
+  code            String   @unique
+  name            String
+  nameLocalized   String   @default("{}") // JSON: {en, tw, ha, ...}
+  description     String?
+  // JSON: categories
+  categories      String   @default("[]")
+  // JSON: units (kg, g, L, ml, piece, bunch)
+  units           String   @default("[]")
+  // JSON: nutrition per 100g
+  nutrition       String   @default("{}")
+  // JSON: allergens
+  allergens       String   @default("[]")
+  // Shelf life in days
+  shelfLifeDays   Int?
+  // JSON: storage requirements
+  storageRequirements String @default("{}")
+  // JSON: substitutions (ingredient IDs)
+  substitutions   String   @default("[]")
+  // JSON: seasonality { months: [1,2,3...] }
+  seasonality     String   @default("{}")
+  // JSON: origin
+  origin          String   @default("{}")
+  // JSON: certifications
+  certifications  String   @default("[]")
+  // ACTIVE | INACTIVE
+  status          String   @default("ACTIVE")
+  version         Int      @default(1)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  recipeIngredients RecipeIngredient[]
+
+  @@index([organizationId])
+  @@index([status])
+}
+
+// --- Recipe Domain ---
+
+model Recipe {
+  id              String   @id @default(cuid())
+  organizationId  String?
+  name            String
+  nameLocalized   String   @default("{}")
+  description     String?
+  // JSON: preparation steps
+  steps           String   @default("[]")
+  // JSON: nutritional analysis
+  nutrition       String   @default("{}")
+  // JSON: allergens
+  allergens       String   @default("[]")
+  // Preparation time in minutes
+  prepTimeMin     Int      @default(30)
+  // Cook time in minutes
+  cookTimeMin     Int      @default(30)
+  // JSON: equipment requirements
+  equipmentRequired String  @default("[]")
+  // Default serving size
+  servingSize     Int      @default(4)
+  // JSON: variations
+  variations      String   @default("[]")
+  // DRAFT | PUBLISHED | ARCHIVED
+  status          String   @default("DRAFT")
+  version         Int      @default(1)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  ingredients     RecipeIngredient[]
+  menuItems       MenuItem[]
+
+  @@index([organizationId])
+  @@index([status])
+}
+
+model RecipeIngredient {
+  id              String   @id @default(cuid())
+  recipeId        String
+  ingredientId    String
+  // Quantity in the specified unit
+  quantity        Float
+  unit            String   @default("g")
+  // Optional preparation note (e.g. "diced", "marinated")
+  preparation     String?
+  createdAt       DateTime @default(now())
+
+  recipe          Recipe    @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  ingredient      Ingredient @relation(fields: [ingredientId], references: [id])
+
+  @@unique([recipeId, ingredientId])
+  @@index([recipeId])
+  @@index([ingredientId])
+}
+
+// --- Menu Domain ---
+
+model Menu {
+  id              String   @id @default(cuid())
+  restaurantId    String
+  name            String
+  description     String?
+  // JSON: seasonal availability
+  seasonal        String   @default("{}")
+  // ACTIVE | INACTIVE
+  status          String   @default("ACTIVE")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  restaurant      Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  items           MenuItem[]
+
+  @@index([restaurantId])
+}
+
+model MenuItem {
+  id              String   @id @default(cuid())
+  menuId          String
+  recipeId        String?
+  name            String
+  description     String?
+  // Price reference (no pricing logic — just the reference value)
+  priceReference Float?
+  currency        String   @default("GHS")
+  // JSON: availability
+  available       Boolean  @default(true)
+  // JSON: nutritional information
+  nutrition       String   @default("{}")
+  // Preparation estimate in minutes
+  prepEstimateMin Int?
+  // JSON: dietary labels
+  dietaryLabels   String   @default("[]")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  menu            Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  recipe          Recipe?  @relation(fields: [recipeId], references: [id])
+
+  @@index([menuId])
+  @@index([recipeId])
+}
+
+// --- Inventory Domain ---
+
+model Inventory {
+  id              String   @id @default(cuid())
+  organizationId  String
+  ingredientId    String?
+  name            String
+  // JSON: storage location
+  storageLocation String   @default("{}")
+  // Current quantity
+  quantity        Float    @default(0)
+  unit            String   @default("g")
+  // Reorder level
+  reorderLevel    Float    @default(0)
+  // JSON: replenishment metadata
+  replenishment   String   @default("{}")
+  // ACTIVE | INACTIVE
+  status          String   @default("ACTIVE")
+  version         Int      @default(1)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  batches         InventoryBatch[]
+
+  @@index([organizationId])
+  @@index([ingredientId])
+}
+
+model InventoryBatch {
+  id              String   @id @default(cuid())
+  inventoryId     String
+  // Batch number for traceability
+  batchNumber     String
+  // Initial quantity
+  initialQuantity Float
+  // Remaining quantity
+  remainingQuantity Float
+  unit            String   @default("g")
+  // Expiration date
+  expiresAt       DateTime?
+  // JSON: storage conditions
+  storageConditions String @default("{}")
+  // RECEIVED | IN_USE | DEPLETED | EXPIRED | DISCARDED
+  status          String   @default("RECEIVED")
+  receivedAt      DateTime @default(now())
+  createdAt       DateTime @default(now())
+
+  inventory       Inventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+
+  @@index([inventoryId])
+  @@index([status])
+  @@index([expiresAt])
+}
+
+// --- Equipment Domain ---
+
+model Equipment {
+  id              String   @id @default(cuid())
+  organizationId  String
+  name            String
+  description     String?
+  // JSON: capacity
+  capacity        String   @default("{}")
+  // JSON: maintenance history
+  maintenanceHistory String @default("[]")
+  // JSON: certifications
+  certifications  String   @default("[]")
+  // JSON: availability
+  availability    String   @default("{}")
+  // JSON: ownership
+  ownership       String   @default("{}")
+  // ACTIVE | INACTIVE | MAINTENANCE
+  status          String   @default("ACTIVE")
+  version         Int      @default(1)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  @@index([organizationId])
+  @@index([status])
+}
+
+// --- Vehicle Domain ---
+
+model Vehicle {
+  id              String   @id @default(cuid())
+  organizationId  String
+  name            String
+  // DELIVERY | REFRIGERATED | CARGO
+  type            String   @default("DELIVERY")
+  // Refrigeration capability
+  refrigerated    Boolean  @default(false)
+  // Cargo capacity in kg
+  cargoCapacityKg Float    @default(500)
+  // JSON: certifications
+  certifications  String   @default("[]")
+  // JSON: ownership
+  ownership       String   @default("{}")
+  // JSON: maintenance history
+  maintenanceHistory String @default("[]")
+  // ACTIVE | INACTIVE | MAINTENANCE
+  status          String   @default("ACTIVE")
+  version         Int      @default(1)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  @@index([organizationId])
+  @@index([status])
+}
+
+// --- Supplier Domain ---
+
+model Supplier {
+  id              String   @id @default(cuid())
+  organizationId  String?
+  name            String
+  description     String?
+  // JSON: product catalog (ingredient codes)
+  productCatalog  String   @default("[]")
+  // JSON: certifications
+  certifications  String   @default("[]")
+  // JSON: operating regions
+  operatingRegions String  @default("[]")
+  // Lead time in days
+  leadTimeDays    Int      @default(7)
+  // JSON: delivery capabilities
+  deliveryCapabilities String @default("{}")
+  // ACTIVE | INACTIVE
+  status          String   @default("ACTIVE")
+  version         Int      @default(1)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  @@index([organizationId])
+  @@index([status])
+}
+
+// --- Vendor Domain ---
+
+model Vendor {
+  id              String   @id @default(cuid())
+  organizationId  String?
+  name            String
+  description     String?
+  // MARKETPLACE | SPECIALTY | FARMER | WHOLESALER | DISTRIBUTOR
+  type            String   @default("MARKETPLACE")
+  // JSON: products
+  products        String   @default("[]")
+  // JSON: certifications
+  certifications  String   @default("[]")
+  // JSON: operating regions
+  operatingRegions String  @default("[]")
+  // ACTIVE | INACTIVE
+  status          String   @default("ACTIVE")
+  version         Int      @default(1)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  @@index([organizationId])
+  @@index([type])
+  @@index([status])
+}
+
+// --- Certification Domain ---
+
+model FoodCertification {
+  id              String   @id @default(cuid())
+  organizationId  String?
+  title           String
+  issuer          String
+  // FOOD_SAFETY | HYGIENE | BUSINESS_LICENSE | PROFESSIONAL | OTHER
+  type            String   @default("FOOD_SAFETY")
+  // The entity this certification applies to (polymorphic)
+  entityType      String   // COOK | KITCHEN | RESTAURANT | SUPPLIER | VENDOR
+  entityId        String
+  issuedAt        DateTime?
+  expiresAt       DateTime?
+  // JSON: issuing authority metadata
+  issuingAuthority String  @default("{}")
+  // PENDING | VERIFIED | EXPIRED | REVOKED
+  status          String   @default("PENDING")
+  version         Int      @default(1)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([entityType, entityId])
+  @@index([status])
+}
+
+// --- Inspection Domain ---
+
+model FoodInspection {
+  id              String   @id @default(cuid())
+  organizationId  String
+  // The entity being inspected
+  entityType      String   // KITCHEN | RESTAURANT | COOK | SUPPLIER
+  entityId        String
+  // SCHEDULED | IN_PROGRESS | COMPLETED | CANCELLED
+  status          String   @default("SCHEDULED")
+  // JSON: findings
+  findings        String   @default("[]")
+  // JSON: violations
+  violations      String   @default("[]")
+  // JSON: corrective actions
+  correctiveActions String  @default("[]")
+  // PASS | FAIL | PENDING_REVIEW
+  outcome         String?
+  // Follow-up inspection ID (if required)
+  followUpId      String?
+  scheduledFor    DateTime
+  completedAt     DateTime?
+  version         Int      @default(1)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([entityType, entityId])
+  @@index([status])
+}
+
+// --- Food Safety Domain ---
+
+model FoodSafetyIncident {
+  id              String   @id @default(cuid())
+  organizationId  String
+  title           String
+  description     String?
+  // INCIDENT | RECALL | CONTAMINATION | COMPLAINT
+  type            String   @default("INCIDENT")
+  // LOW | MEDIUM | HIGH | CRITICAL
+  severity        String   @default("LOW")
+  // The affected entity (polymorphic)
+  entityType      String?
+  entityId        String?
+  // JSON: root cause metadata
+  rootCause       String   @default("{}")
+  // JSON: corrective actions
+  correctiveActions String  @default("[]")
+  // OPEN | INVESTIGATING | RESOLVED | CLOSED
+  status          String   @default("OPEN")
+  reportedAt      DateTime @default(now())
+  resolvedAt      DateTime?
+  version         Int      @default(1)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([severity])
+}
+
+// --- Nutrition Domain ---
+
+model NutritionProfile {
+  id              String   @id @default(cuid())
+  organizationId  String?
+  name            String
+  // JSON: macro nutrients { calories, protein, carbs, fat, fiber }
+  macros          String   @default("{}")
+  // JSON: micro nutrients { vitamins, minerals }
+  micros          String   @default("{}")
+  // JSON: dietary restrictions
+  dietaryRestrictions String @default("[]")
+  // JSON: allergens
+  allergens       String   @default("[]")
+  // JSON: nutrition labels
+  labels          String   @default("[]")
+  // JSON: serving calculations
+  servingCalculations String @default("{}")
+  version         Int      @default(1)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([organizationId])
+}
+
+// --- Food Intelligence Graph ---
+
+model GraphNode {
+  id              String   @id @default(cuid())
+  // The entity type (CUSTOMER, COOK, KITCHEN, INGREDIENT, RECIPE, etc.)
+  entityType      String
+  // The entity ID
+  entityId        String
+  // JSON: snapshot of entity data for quick access
+  data            String   @default("{}")
+  // Organization scope (null = global)
+  organizationId  String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  edgesFrom       GraphEdge[] @relation("EdgeFrom")
+  edgesTo         GraphEdge[] @relation("EdgeTo")
+
+  @@unique([entityType, entityId])
+  @@index([entityType])
+  @@index([organizationId])
+}
+
+model GraphEdge {
+  id              String   @id @default(cuid())
+  fromNodeId      String
+  toNodeId        String
+  // The relationship type (member_of, works_at, contains, supplies, inspects, certified_by, etc.)
+  type            String
+  // JSON: relationship metadata
+  metadata        String   @default("{}")
+  // Temporal: when this relationship started
+  validFrom       DateTime @default(now())
+  // Temporal: when this relationship ended (null = active)
+  validTo         DateTime?
+  // Edge weight (for weighted path queries)
+  weight          Float    @default(1)
+  createdAt       DateTime @default(now())
+
+  fromNode        GraphNode @relation("EdgeFrom", fields: [fromNodeId], references: [id], onDelete: Cascade)
+  toNode          GraphNode @relation("EdgeTo", fields: [toNodeId], references: [id], onDelete: Cascade)
+
+  @@unique([fromNodeId, toNodeId, type])
+  @@index([fromNodeId])
+  @@index([toNodeId])
+  @@index([type])
+}
+
+// --- Entity Versioning ---
+
+model EntityVersion {
+  id              String   @id @default(cuid())
+  organizationId  String?
+  entityType      String
+  entityId        String
+  version         Int
+  // JSON: snapshot of the entity at this version
+  snapshot        String   @default("{}")
+  // Who made the change
+  changedById     String?
+  // What kind of change
+  changeType      String   // CREATE | UPDATE | DELETE | IMPORT | EXPORT
+  // JSON: diff (field-level changes)
+  diff            String   @default("{}")
+  createdAt       DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([organizationId])
+  @@index([createdAt])
+}
+
+// --- Relationships (simplified — mirrors GraphEdge for direct querying) ---
+
+model Relationship {
+  id              String   @id @default(cuid())
+  organizationId  String?
+  // The source entity
+  fromEntityType  String
+  fromEntityId    String
+  // The target entity
+  toEntityType    String
+  toEntityId      String
+  // The relationship type
+  type            String
+  // JSON: metadata
+  metadata        String   @default("{}")
+  validFrom       DateTime @default(now())
+  validTo         DateTime?
+  createdAt       DateTime @default(now())
+
+  @@index([fromEntityType, fromEntityId])
+  @@index([toEntityType, toEntityId])
+  @@index([type])
+  @@index([organizationId])
+}
