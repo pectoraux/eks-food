@@ -2939,3 +2939,523 @@ model Relationship {
   @@index([type])
   @@index([organizationId])
 }
+
+// ===========================================================================
+// Milestone 7 — Food Catalog, Recipe, Menu, Inventory & Nutritional Intelligence
+// ===========================================================================
+// The operational Food Intelligence Platform. Transforms the canonical domain
+// model into production catalog management, recipes, menus, inventory, nutrition.
+// See docs/fims/CATALOG_ARCHITECTURE.md.
+// ===========================================================================
+
+// --- Food Catalog ---
+
+model FoodCatalog {
+  id              String   @id @default(cuid())
+  organizationId  String?
+  // Globally unique catalog code (e.g. "FC-ING-001")
+  code            String   @unique
+  name            String
+  nameLocalized   String   @default("{}")
+  description     String?
+  // INGREDIENT | PREPARED_FOOD | BEVERAGE | PACKAGED | MEAL_KIT | SPICE | CONDIMENT | ADDITIVE | ALLERGEN
+  itemType        String   @default("INGREDIENT")
+  // JSON: aliases (alternative names)
+  aliases         String   @default("[]")
+  // JSON: image URLs
+  images          String   @default("[]")
+  // Barcode (EAN/UPC)
+  barcode         String?
+  // SKU reference
+  sku             String?
+  // Supplier reference
+  supplierId      String?
+  // JSON: categories (taxonomy IDs)
+  categories      String   @default("[]")
+  // JSON: extensible metadata
+  metadata        String   @default("{}")
+  // DRAFT | ACTIVE | DISCONTINUED
+  status          String   @default("DRAFT")
+  version         Int      @default(1)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  variants        IngredientVariant[]
+  nutritionFacts  NutritionFact[]
+  imports         CatalogImportRow[]
+
+  @@index([organizationId])
+  @@index([itemType])
+  @@index([status])
+  @@index([barcode])
+  @@index([sku])
+}
+
+model FoodCategory {
+  id              String   @id @default(cuid())
+  // The parent category ID (null = root)
+  parentId        String?
+  code            String   @unique
+  name            String
+  nameLocalized   String   @default("{}")
+  // CATEGORY | SUBCATEGORY | CUISINE | MEAL_TYPE | INGREDIENT_FAMILY | DIETARY | PREPARATION | TECHNIQUE
+  type            String   @default("CATEGORY")
+  description     String?
+  sortOrder       Int      @default(0)
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([parentId])
+  @@index([type])
+}
+
+model IngredientVariant {
+  id              String   @id @default(cuid())
+  catalogId       String
+  name            String
+  // JSON: variant attributes (size, color, packaging, etc.)
+  attributes      String   @default("{}")
+  // JSON: nutritional differences from base
+  nutritionDiff   String   @default("{}")
+  // JSON: price reference
+  priceRef        String   @default("{}")
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  catalog         FoodCatalog @relation(fields: [catalogId], references: [id], onDelete: Cascade)
+
+  @@index([catalogId])
+}
+
+model IngredientAlias {
+  id              String   @id @default(cuid())
+  name            String
+  // The canonical ingredient name this alias maps to
+  canonicalName   String
+  // Language code
+  language        String   @default("en")
+  // Region (e.g. "GH", "NG")
+  region          String?
+  createdAt       DateTime @default(now())
+
+  @@unique([name, language])
+  @@index([canonicalName])
+}
+
+// --- Recipe Platform (extends M6 Recipe) ---
+
+model RecipeVersion {
+  id              String   @id @default(cuid())
+  recipeId        String
+  version         Int
+  // JSON: full recipe snapshot at this version
+  snapshot        String   @default("{}")
+  // DRAFT | IN_REVIEW | PUBLISHED | ARCHIVED
+  status          String   @default("DRAFT")
+  // Who created this version
+  authoredById    String?
+  // Who approved/published
+  approvedById    String?
+  changelog       String?
+  publishedAt     DateTime?
+  createdAt       DateTime @default(now())
+
+  stages          RecipeStage[]
+
+  @@unique([recipeId, version])
+  @@index([recipeId])
+  @@index([status])
+}
+
+model RecipeStage {
+  id              String   @id @default(cuid())
+  versionId       String
+  name            String
+  // PREP | COOK | COOL | REST | CLEANUP | PLATE
+  type            String   @default("PREP")
+  sortOrder       Int      @default(0)
+  // Estimated time for this stage in minutes
+  estimatedMin    Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  version         RecipeVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  instructions    RecipeInstruction[]
+
+  @@index([versionId])
+}
+
+model RecipeInstruction {
+  id              String   @id @default(cuid())
+  stageId         String
+  sortOrder       Int      @default(0)
+  instruction     String
+  // JSON: required equipment
+  equipment       String   @default("[]")
+  // JSON: required ingredients for this step
+  ingredients     String   @default("[]")
+  // Estimated time for this instruction in minutes
+  estimatedMin    Int?
+  createdAt       DateTime @default(now())
+
+  stage           RecipeStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+
+  @@index([stageId])
+}
+
+// --- Nutritional Intelligence ---
+
+model NutritionFact {
+  id              String   @id @default(cuid())
+  // Polymorphic: links to FoodCatalog or Recipe
+  entityType      String   // CATALOG_ITEM | RECIPE
+  entityId        String
+  catalogId       String?
+  // Per 100g or per serving
+  perAmount       Float    @default(100)
+  perUnit         String   @default("g")
+  // Macros
+  calories        Float    @default(0)
+  protein         Float    @default(0)
+  carbohydrates   Float    @default(0)
+  fat             Float    @default(0)
+  fiber           Float    @default(0)
+  sugar           Float    @default(0)
+  sodium          Float    @default(0)
+  // JSON: micro nutrients (vitamins, minerals)
+  micronutrients  String   @default("{}")
+  // JSON: allergens
+  allergens       String   @default("[]")
+  // JSON: dietary classifications
+  dietaryTags     String   @default("[]")
+  // How this was derived: CALCULATED | MANUAL | IMPORTED
+  source          String   @default("MANUAL")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  catalog         FoodCatalog? @relation(fields: [catalogId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([catalogId])
+}
+
+model Allergen {
+  id              String   @id @default(cuid())
+  code            String   @unique // e.g. "PEANUTS", "GLUTEN", "DAIRY"
+  name            String
+  nameLocalized   String   @default("{}")
+  // Severity level
+  severity        String   @default("HIGH") // LOW | MEDIUM | HIGH | CRITICAL
+  // JSON: cross-contamination risk
+  crossContaminationRisk String @default("{}")
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  @@index([active])
+}
+
+model DietaryProfile {
+  id              String   @id @default(cuid())
+  code            String   @unique // VEGAN | VEGETARIAN | HALAL | KOSHER | GLUTEN_FREE | DAIRY_FREE | KETO | PALEO | LOW_SODIUM | DIABETIC_FRIENDLY
+  name            String
+  nameLocalized   String   @default("{}")
+  description     String?
+  // JSON: allowed ingredient categories
+  allowedCategories String @default("[]")
+  // JSON: forbidden ingredient categories
+  forbiddenCategories String @default("[]")
+  // JSON: forbidden allergens
+  forbiddenAllergens String @default("[]")
+  // Whether this is a system profile (vs custom)
+  isSystem        Boolean  @default(true)
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  @@index([active])
+}
+
+// --- Menu Platform (extends M6 Menu) ---
+
+model MenuVersion {
+  id              String   @id @default(cuid())
+  menuId          String
+  version         Int
+  // JSON: full menu snapshot
+  snapshot        String   @default("{}")
+  // DRAFT | PUBLISHED | ARCHIVED
+  status          String   @default("DRAFT")
+  // JSON: seasonal availability { startDate, endDate }
+  seasonal        String   @default("{}")
+  // JSON: regional scope
+  regional        String   @default("[]")
+  publishedAt     DateTime?
+  createdAt       DateTime @default(now())
+
+  @@unique([menuId, version])
+  @@index([menuId])
+  @@index([status])
+}
+
+model MenuModifier {
+  id              String   @id @default(cuid())
+  menuItemId      String
+  name            String
+  // JSON: options (e.g. [{ name: "Extra spicy", priceRef: 5 }])
+  options         String   @default("[]")
+  // Whether this modifier is required
+  required        Boolean  @default(false)
+  // Max selections (0 = unlimited)
+  maxSelections   Int      @default(1)
+  createdAt       DateTime @default(now())
+
+  @@index([menuItemId])
+}
+
+model MenuBundle {
+  id              String   @id @default(cuid())
+  menuId          String
+  name            String
+  description     String?
+  // JSON: bundle items (menuItem IDs + quantities)
+  items           String   @default("[]")
+  // JSON: availability constraints
+  availability    String   @default("{}")
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([menuId])
+}
+
+// --- Inventory Platform (extends M6 Inventory) ---
+
+model InventoryLocation {
+  id              String   @id @default(cuid())
+  organizationId  String
+  name            String
+  // WAREHOUSE | KITCHEN | STORAGE_ROOM | REFRIGERATOR | FREEZER | DRY_STORAGE | MOBILE
+  type            String   @default("STORAGE_ROOM")
+  // JSON: address / coordinates
+  location        String   @default("{}")
+  // JSON: capacity metadata
+  capacity        String   @default("{}")
+  // Temperature range in Celsius
+  minTempC        Float?
+  maxTempC        Float?
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  movements       InventoryMovement[]
+  reservations    InventoryReservation[]
+
+  @@index([organizationId])
+  @@index([type])
+}
+
+model InventoryMovement {
+  id              String   @id @default(cuid())
+  inventoryId     String
+  locationId      String?
+  // RECEIVE | TRANSFER | CONSUME | ADJUST | WASTE | SPOILAGE | RETURN
+  type            String
+  // Quantity moved (positive for in, negative for out)
+  quantity        Float
+  unit            String   @default("g")
+  // From location (for transfers)
+  fromLocationId  String?
+  // To location (for transfers)
+  toLocationId    String?
+  // Batch reference
+  batchId         String?
+  // JSON: metadata (reason, reference, etc.)
+  metadata        String   @default("{}")
+  // Audit
+  performedById   String?
+  correlationId   String?
+  createdAt       DateTime @default(now())
+
+  location        InventoryLocation? @relation(fields: [locationId], references: [id])
+
+  @@index([inventoryId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model InventoryReservation {
+  id              String   @id @default(cuid())
+  inventoryId     String
+  locationId      String?
+  // Who reserved this
+  reservedById    String
+  quantity        Float
+  unit            String   @default("g")
+  // JSON: reference (booking code, order ID, etc.)
+  reference       String   @default("{}")
+  // PENDING | CONFIRMED | RELEASED | CONSUMED
+  status          String   @default("PENDING")
+  expiresAt       DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  location        InventoryLocation? @relation(fields: [locationId], references: [id])
+
+  @@index([inventoryId])
+  @@index([status])
+}
+
+model InventoryAudit {
+  id              String   @id @default(cuid())
+  inventoryId     String
+  // The expected quantity (from system)
+  expectedQuantity Float
+  // The actual counted quantity
+  actualQuantity  Float
+  unit            String   @default("g")
+  // The variance (actual - expected)
+  variance        Float
+  // JSON: findings
+  findings        String   @default("[]")
+  performedById   String
+  performedAt     DateTime @default(now())
+  createdAt       DateTime @default(now())
+
+  @@index([inventoryId])
+  @@index([performedAt])
+}
+
+model WasteRecord {
+  id              String   @id @default(cuid())
+  organizationId  String
+  inventoryId     String?
+  batchId         String?
+  // SPOILAGE | PREPARATION_WASTE | OVERPRODUCTION | EXPIRED | DAMAGED
+  type            String
+  quantity        Float
+  unit            String   @default("g")
+  // Reason for waste
+  reason          String?
+  // JSON: metadata
+  metadata        String   @default("{}")
+  recordedById    String
+  createdAt       DateTime @default(now())
+
+  @@index([organizationId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+// --- Measurement System ---
+
+model MeasurementUnit {
+  id              String   @id @default(cuid())
+  code            String   @unique // g | kg | oz | lb | ml | L | cup | tbsp | tsp | piece | bunch
+  name            String
+  nameLocalized   String   @default("{}")
+  // WEIGHT | VOLUME | COUNT
+  type            String   @default("WEIGHT")
+  // Base unit in this type (e.g. g for WEIGHT, ml for VOLUME)
+  baseUnit        String
+  // Conversion factor to base unit (e.g. kg → 1000g, oz → 28.35g)
+  baseFactor      Float
+  // JSON: localized variants (e.g. { en: "cup", tw: "kuruwa" })
+  localizedVariants String @default("{}")
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  @@index([type])
+  @@index([active])
+}
+
+model ConversionRule {
+  id              String   @id @default(cuid())
+  fromUnit        String
+  toUnit          String
+  // Conversion factor (multiply from-value by this to get to-value)
+  factor          Float
+  // Whether this conversion is density-aware (requires an ingredient)
+  densityAware    Boolean  @default(false)
+  // Ingredient-specific density (g per ml) — for density-aware conversions
+  ingredientCode  String?
+  density         Float?
+  createdAt       DateTime @default(now())
+
+  @@unique([fromUnit, toUnit, ingredientCode])
+  @@index([fromUnit, toUnit])
+}
+
+// --- Import/Export ---
+
+model CatalogImport {
+  id              String   @id @default(cuid())
+  organizationId  String
+  // CSV | XLSX | JSON | SUPPLIER_CATALOG | BARCODE
+  format          String
+  // The source file name or reference
+  source          String
+  // PENDING | VALIDATING | PREVIEW | IMPORTING | COMPLETED | FAILED | ROLLED_BACK
+  status          String   @default("PENDING")
+  totalRows       Int      @default(0)
+  validRows       Int      @default(0)
+  invalidRows     Int      @default(0)
+  importedRows    Int      @default(0)
+  // JSON: validation errors
+  errors          String   @default("[]")
+  // JSON: column mapping
+  columnMapping   String   @default("{}")
+  performedById   String
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime @default(now())
+
+  rows            CatalogImportRow[]
+
+  @@index([organizationId])
+  @@index([status])
+}
+
+model CatalogImportRow {
+  id              String   @id @default(cuid())
+  importId        String
+  rowIndex        Int
+  // JSON: raw row data
+  rawData         String   @default("{}")
+  // JSON: mapped data
+  mappedData      String   @default("{}")
+  // VALID | INVALID | IMPORTED | SKIPPED
+  status          String   @default("PENDING")
+  // Validation errors for this row
+  errors          String   @default("[]")
+  // The created catalog item ID (if imported)
+  catalogId       String?
+  createdAt       DateTime @default(now())
+
+  import          CatalogImport @relation(fields: [importId], references: [id], onDelete: Cascade)
+  catalog         FoodCatalog? @relation(fields: [catalogId], references: [id])
+
+  @@index([importId])
+  @@index([status])
+}
+
+model CatalogExport {
+  id              String   @id @default(cuid())
+  organizationId  String
+  // CSV | XLSX | JSON
+  format          String
+  // JSON: export filters
+  filters         String   @default("{}")
+  totalItems      Int      @default(0)
+  // PENDING | EXPORTING | COMPLETED | FAILED
+  status          String   @default("PENDING")
+  // The export file URL
+  fileUrl         String?
+  performedById   String
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime @default(now())
+
+  @@index([organizationId])
+  @@index([status])
+}

@@ -7,6 +7,7 @@ import { DashboardView, ExtensionsView, ConnectorsView, WorkflowsView, EventsVie
 import { ConnectorRegistryView, SyncMonitorView, WebhookExplorerView, PollingExplorerView, SchemaExplorerView, HealthDashboardView, CredentialsView, PoliciesView } from "@/components/integration-views";
 import { ProviderRegistryView, ConnectorHealthView, SyncDashboardView, CacheInspectorView, ApiExplorerView } from "@/components/connectors-views";
 import { GraphExplorerView, SearchView, EntityBrowserView } from "@/components/food-domain-views";
+import { CatalogExplorerView, RecipeDebuggerView, MeasurementConverterView, WasteDashboardView } from "@/components/fims-views";
 
 /**
  * Eks-Food Developer Console — the visible surface of Milestones 3 + 4.
@@ -31,6 +32,7 @@ function DevConsole() {
         await fetch("/api/v1/seed-integration", { method: "POST" });
         await fetch("/api/v1/seed-connectors", { method: "POST" });
         await fetch("/api/v1/food-domain/seed", { method: "POST" });
+        await fetch("/api/v1/fims/seed", { method: "POST" });
       } catch {
         /* ignore */
       }
@@ -70,6 +72,11 @@ function DevConsole() {
       {view === "graph-explorer" && <GraphExplorerView />}
       {view === "fd-search" && <SearchView />}
       {view === "entity-browser" && <EntityBrowserView />}
+      {/* M7 views */}
+      {view === "fims-catalog" && <CatalogExplorerView />}
+      {view === "fims-recipe" && <RecipeDebuggerView />}
+      {view === "fims-measurement" && <MeasurementConverterView />}
+      {view === "fims-waste" && <WasteDashboardView />}
     </DevShell>
   );
 }

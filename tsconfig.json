@@ -56,6 +56,7 @@
       "@eks/dev-cli": ["./src/packages/dev-cli/index.ts"],
       "@eks/connectors": ["./src/packages/connectors/index.ts"],
       "@eks/food-domain": ["./src/packages/food-domain/index.ts"],
+      "@eks/fims": ["./src/packages/fims/index.ts"],
       "@eks/*": ["./src/packages/*"]
     }
   },
