@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { LayoutDashboard, Puzzle, Plug, GitBranch, ScrollText, ShieldCheck, Terminal, Ticket, Activity, Menu, X, Moon, Sun, RotateCcw } from "lucide-react";
+import { LayoutDashboard, Puzzle, Plug, GitBranch, ScrollText, ShieldCheck, Terminal, Ticket, Activity, Menu, X, Moon, Sun, RotateCcw, Webhook, RefreshCw, FileJson, Heart, KeyRound, Gauge, Clock } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useSeedDeveloper } from "@/lib/dev-api";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-export type DevView = "dashboard" | "extensions" | "connectors" | "workflows" | "events" | "manifests" | "cli" | "publishers" | "logs" | "replay" | "runtime";
+export type DevView = "dashboard" | "extensions" | "connectors" | "workflows" | "events" | "manifests" | "cli" | "publishers" | "logs" | "replay" | "runtime" | "conn-registry" | "sync-monitor" | "webhook-explorer" | "polling-explorer" | "schema-explorer" | "health-dashboard" | "credentials" | "policies";
 
 const NAV: { id: DevView; label: string; icon: typeof Puzzle; group: string }[] = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, group: "Overview" },
@@ -22,6 +22,14 @@ const NAV: { id: DevView; label: string; icon: typeof Puzzle; group: string }[] 
   { id: "publishers", label: "Publishers", icon: Ticket, group: "Registry" },
   { id: "logs", label: "Extension Logs", icon: ScrollText, group: "Registry" },
   { id: "runtime", label: "Runtime Inspector", icon: Activity, group: "Registry" },
+  { id: "conn-registry", label: "Connector Registry", icon: Plug, group: "Integration" },
+  { id: "sync-monitor", label: "Sync Monitor", icon: RefreshCw, group: "Integration" },
+  { id: "webhook-explorer", label: "Webhook Explorer", icon: Webhook, group: "Integration" },
+  { id: "polling-explorer", label: "Polling Explorer", icon: Clock, group: "Integration" },
+  { id: "schema-explorer", label: "Schema Explorer", icon: FileJson, group: "Integration" },
+  { id: "health-dashboard", label: "Health Dashboard", icon: Heart, group: "Integration" },
+  { id: "credentials", label: "Credentials", icon: KeyRound, group: "Integration" },
+  { id: "policies", label: "Retry & Rate-Limit", icon: Gauge, group: "Integration" },
 ];
 
 export function DevShell({ active, onNavigate, children }: { active: DevView; onNavigate: (v: DevView) => void; children: ReactNode }) {

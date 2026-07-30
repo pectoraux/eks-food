@@ -1108,6 +1108,7 @@ model ConnectorDefinition {
   updatedAt       DateTime @updatedAt
 
   configurations  ConnectorConfiguration[]
+  configurationsV2 ConnectorConfigurationV2[]
 }
 
 model ConnectorConfiguration {
@@ -1337,4 +1338,480 @@ model ExtensionLog {
   @@index([organizationId])
   @@index([level])
   @@index([createdAt])
+}
+
+// ===========================================================================
+// Milestone 4 — Universal Connector Platform & Enterprise Integration Infrastructure
+// ===========================================================================
+// The integration layer through which all external systems communicate with
+// Eks-Food. Provider-agnostic, isolated, auditable, resilient. See
+// docs/integration/ARCHITECTURE.md.
+// ===========================================================================
+
+// --- Connector Registry (M4 expands M3 ConnectorDefinition) ---
+
+/// A registered connector type (e.g. "payswap", "google-maps", "twilio-sms").
+/// Extends the M3 ConnectorDefinition with versioning + scheduling metadata.
+model ConnectorVersion {
+  id              String   @id @default(cuid())
+  connectorDefId  String
+  version         String   // semver: 1.0.0
+  // JSON: entrypoint metadata, capabilities, config schema
+  manifest        String
+  // SHA-256 of the package artifact
+  checksum        String
+  signature       String?
+  sizeBytes       Int
+  // RELEASED | DEPRECATED | YANKED
+  status          String   @default("RELEASED")
+  changelog       String?
+  compatRange     String
+  createdAt       DateTime @default(now())
+  publishedAt     DateTime?
+
+  @@unique([connectorDefId, version])
+  @@index([connectorDefId])
+  @@index([status])
+}
+
+// --- Credentials (encrypted, never plaintext) ---
+
+model ConnectorCredential {
+  id              String   @id @default(cuid())
+  organizationId  String
+  connectorDefId  String
+  // Display name for this credential set
+  name            String
+  // API_KEY | OAUTH2 | JWT | BEARER | BASIC | MTLS | SIGNED | CUSTOM
+  authType        String
+  // Encrypted credential payload (AES-256-GCM)
+  encryptedData   String
+  // Version for rotation
+  version         Int      @default(1)
+  // Whether this credential is currently active
+  active          Boolean  @default(true)
+  // Optional expiration (for OAuth tokens that need refresh)
+  expiresAt       DateTime?
+  lastRotatedAt   DateTime?
+  lastUsedAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  configurations  ConnectorConfigurationV2[]
+
+  @@index([organizationId])
+  @@index([connectorDefId])
+}
+
+// --- Connector Configurations (tenant-specific) ---
+
+/// Replaces the M3 ConnectorConfiguration with a richer model that links
+/// to credentials, schedules, and sync state. (The M3 model is kept for
+/// backward compat; this is the M4 canonical one.)
+model ConnectorConfigurationV2 {
+  id              String   @id @default(cuid())
+  organizationId  String
+  connectorDefId  String
+  credentialId    String? @unique
+  // Display name
+  name            String
+  // JSON: connector-specific config (endpoints, options, etc.)
+  config          String   @default("{}")
+  // ACTIVE | PAUSED | ERROR | DRAFT
+  status          String   @default("DRAFT")
+  // Sync state (JSON: {lastSyncAt, cursor, totalRecords, ...})
+  syncState       String   @default("{}")
+  lastSyncAt      DateTime?
+  lastError       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  credential      ConnectorCredential? @relation(fields: [credentialId], references: [id])
+  connectorDef    ConnectorDefinition @relation(fields: [connectorDefId], references: [id])
+  schedules       ConnectorSchedule[]
+  syncJobs        SynchronizationJob[]
+  webhookEndpoints WebhookEndpoint[]
+  pollingJobs     PollingJob[]
+  executions      ConnectorExecutionV2[]
+  health          ConnectorHealth[]
+
+  @@index([organizationId])
+  @@index([connectorDefId])
+  @@index([status])
+}
+
+// --- Executions (M4 expands M3 ConnectorExecution) ---
+
+model ConnectorExecutionV2 {
+  id              String   @id @default(cuid())
+  configId        String
+  // SYNC | POLL | WEBHOOK | HEALTH_CHECK | MANUAL
+  kind            String
+  // RUNNING | SUCCESS | FAILED | TIMEOUT | RETRYING
+  status          String
+  durationMs      Int
+  attempts        Int      @default(0)
+  // JSON: redacted request
+  request         String   @default("{}")
+  // JSON: redacted response
+  response        String   @default("{}")
+  errorMessage    String?
+  // Correlation + trace IDs for observability
+  correlationId   String?
+  traceId         String?
+  startedAt       DateTime @default(now())
+  completedAt     DateTime?
+
+  config          ConnectorConfigurationV2 @relation(fields: [configId], references: [id], onDelete: Cascade)
+
+  @@index([configId])
+  @@index([status])
+  @@index([startedAt])
+}
+
+// --- Health Monitoring ---
+
+model ConnectorHealth {
+  id              String   @id @default(cuid())
+  configId        String
+  // HEALTHY | DEGRADED | UNHEALTHY | OFFLINE
+  status          String
+  // Latency in ms (last request)
+  latencyMs       Int      @default(0)
+  // Error rate (0-1)
+  errorRate       Float    @default(0)
+  // Retry rate (0-1)
+  retryRate       Float    @default(0)
+  // Throughput (records/sec)
+  throughput      Float    @default(0)
+  // Sync lag in seconds (how far behind real-time)
+  syncLagSec      Int      @default(0)
+  // Availability (0-1) over the reporting window
+  availability    Float    @default(1)
+  reportedAt      DateTime @default(now())
+
+  config          ConnectorConfigurationV2 @relation(fields: [configId], references: [id], onDelete: Cascade)
+
+  @@index([configId])
+  @@index([reportedAt])
+}
+
+// --- Scheduling ---
+
+model ConnectorSchedule {
+  id              String   @id @default(cuid())
+  configId        String
+  // CRON | INTERVAL | MANUAL | EVENT
+  type            String
+  // Cron expression (for CRON), interval in seconds (for INTERVAL), event type (for EVENT)
+  expression      String
+  // Whether this schedule is active
+  active          Boolean  @default(true)
+  // Maintenance windows / blackout periods (JSON array of {start, end})
+  blackoutPeriods String   @default("[]")
+  lastTriggeredAt DateTime?
+  nextTriggerAt   DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  config          ConnectorConfigurationV2 @relation(fields: [configId], references: [id], onDelete: Cascade)
+
+  @@index([configId])
+  @@index([active])
+}
+
+// --- Synchronization ---
+
+model SynchronizationJob {
+  id              String   @id @default(cuid())
+  configId        String
+  organizationId  String
+  // FULL | INCREMENTAL | DELTA | BIDIRECTIONAL
+  mode            String
+  // PENDING | RUNNING | COMPLETED | FAILED | PAUSED | CANCELLED
+  status          String   @default("PENDING")
+  // Total records processed
+  recordsProcessed Int     @default(0)
+  recordsCreated  Int      @default(0)
+  recordsUpdated  Int      @default(0)
+  recordsDeleted  Int      @default(0)
+  recordsFailed   Int      @default(0)
+  conflicts       Int      @default(0)
+  // JSON: error details for partial failures
+  errors          String   @default("[]")
+  errorMessage    String?
+  // Correlation ID for tracing
+  correlationId   String?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  durationMs      Int?
+  createdAt       DateTime @default(now())
+
+  config          ConnectorConfigurationV2 @relation(fields: [configId], references: [id], onDelete: Cascade)
+  checkpoints     SynchronizationCheckpoint[]
+
+  @@index([configId])
+  @@index([organizationId])
+  @@index([status])
+}
+
+model SynchronizationCheckpoint {
+  id              String   @id @default(cuid())
+  syncJobId       String
+  // The resource being synced (e.g. "bookings", "customers")
+  resource        String
+  // The cursor position (opaque to the platform; connector-specific)
+  cursor          String?
+  // Records synced up to this checkpoint
+  recordsSynced   Int      @default(0)
+  // Timestamp of the last record synced
+  lastRecordAt    DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  syncJob         SynchronizationJob @relation(fields: [syncJobId], references: [id], onDelete: Cascade)
+
+  @@unique([syncJobId, resource])
+  @@index([syncJobId])
+}
+
+// --- Webhooks ---
+
+model WebhookEndpoint {
+  id              String   @id @default(cuid())
+  configId        String
+  organizationId  String
+  // The URL to deliver to (for outbound) or the path to receive on (for inbound)
+  url             String
+  // The event types this endpoint subscribes to (JSON array; empty = all)
+  eventTypes      String   @default("[]")
+  // HMAC-SHA256 secret for signature verification
+  signingSecret   String
+  // Whether this endpoint is active
+  active          Boolean  @default(true)
+  // Verification status (for inbound: challenge-response)
+  verified        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  config          ConnectorConfigurationV2 @relation(fields: [configId], references: [id], onDelete: Cascade)
+  deliveries      WebhookDelivery[]
+
+  @@index([configId])
+  @@index([organizationId])
+}
+
+model WebhookDelivery {
+  id              String   @id @default(cuid())
+  endpointId      String
+  // The event being delivered
+  eventId         String
+  eventType       String
+  // The payload (JSON)
+  payload         String   @default("{}")
+  // The computed HMAC-SHA256 signature
+  signature       String
+  // PENDING | DELIVERED | FAILED | RETRYING | DEAD_LETTERED
+  status          String   @default("PENDING")
+  // HTTP response status code
+  responseStatus  Int?
+  // Response body (truncated)
+  responseBody    String?
+  attempts        Int      @default(0)
+  errorMessage    String?
+  deliveredAt     DateTime?
+  firstAttemptAt  DateTime @default(now())
+  lastAttemptAt   DateTime?
+
+  endpoint        WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+
+  @@index([endpointId])
+  @@index([status])
+  @@index([eventType])
+}
+
+// --- Polling ---
+
+model PollingJob {
+  id              String   @id @default(cuid())
+  configId        String
+  // The resource to poll (e.g. "orders", "inventory")
+  resource        String
+  // Polling interval in seconds
+  intervalSec     Int      @default(300)
+  // Whether adaptive polling is enabled
+  adaptive        Boolean  @default(false)
+  // Last cursor (for incremental polling)
+  lastCursor      String?
+  // Records fetched in the last poll
+  lastRecordCount Int      @default(0)
+  // ACTIVE | PAUSED | ERROR
+  status          String   @default("ACTIVE")
+  lastPollAt      DateTime?
+  lastError       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  config          ConnectorConfigurationV2 @relation(fields: [configId], references: [id], onDelete: Cascade)
+
+  @@index([configId])
+  @@index([status])
+}
+
+// --- Schema Registry ---
+
+model SchemaDefinition {
+  id              String   @id @default(cuid())
+  // The schema's unique identifier (e.g. "booking.created", "customer.updated")
+  identifier      String   @unique
+  name            String
+  description     String?
+  // JSON | AVRO | PROTOBUF | XML
+  format          String   @default("JSON")
+  // The latest version id
+  latestVersionId String? @unique
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  versions        SchemaVersion[]
+  latestVersion   SchemaVersion?  @relation("LatestSchemaVersion", fields: [latestVersionId], references: [id])
+}
+
+model SchemaVersion {
+  id              String   @id @default(cuid())
+  schemaDefId     String
+  version         String   // semver: 1.0.0
+  // The schema definition (JSON Schema, Avro schema, etc.)
+  schema          String
+  // BACKWARD | FORWARD | FULL | NONE
+  compatibility   String   @default("BACKWARD")
+  // Whether this version is active
+  active          Boolean  @default(true)
+  changelog       String?
+  createdAt       DateTime @default(now())
+
+  schemaDef       SchemaDefinition @relation(fields: [schemaDefId], references: [id], onDelete: Cascade)
+  latestFor       SchemaDefinition? @relation("LatestSchemaVersion")
+  mappingsAsSource MappingTemplate[] @relation("MappingSource")
+  mappingsAsTarget MappingTemplate[] @relation("MappingTarget")
+
+  @@unique([schemaDefId, version])
+  @@index([schemaDefId])
+}
+
+// --- Mapping & Transformation ---
+
+model MappingTemplate {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  // The source schema version
+  sourceSchemaVersionId String
+  // The target schema version
+  targetSchemaVersionId String
+  // JSON: field mapping rules [{source, target, transform?, required?}]
+  rules           String   @default("[]")
+  // Whether this template is active
+  active          Boolean  @default(true)
+  // Version of this template
+  version         Int      @default(1)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  sourceSchemaVersion SchemaVersion @relation("MappingSource", fields: [sourceSchemaVersionId], references: [id])
+  targetSchemaVersion SchemaVersion @relation("MappingTarget", fields: [targetSchemaVersionId], references: [id])
+
+  @@index([sourceSchemaVersionId])
+  @@index([targetSchemaVersionId])
+}
+
+model TransformationRule {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  // JSON | XML | CSV | CUSTOM
+  inputFormat     String   @default("JSON")
+  outputFormat    String   @default("JSON")
+  // The transformation expression (JSONata, JMESPath, or custom)
+  expression      String
+  // Whether this rule is active
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([active])
+}
+
+// --- Retry & Rate Limit Policies ---
+
+model RetryPolicy {
+  id              String   @id @default(cuid())
+  name            String
+  // Max attempts
+  maxAttempts     Int      @default(3)
+  // Base delay in ms
+  baseDelayMs     Int      @default(100)
+  // Backoff multiplier
+  multiplier      Float    @default(2)
+  // Max delay cap
+  maxDelayMs      Int      @default(5000)
+  // Jitter: NONE | FULL | EQUAL
+  jitter          String   @default("FULL")
+  // Retry budget (max retries per window)
+  budget          Int      @default(100)
+  // Budget window in ms
+  budgetWindowMs  Int      @default(60000)
+  // Whether to enable circuit breaker
+  circuitBreaker  Boolean  @default(true)
+  // Circuit breaker threshold
+  cbThreshold     Int      @default(5)
+  // Circuit breaker cooldown
+  cbCooldownMs    Int      @default(30000)
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([active])
+}
+
+model RateLimitPolicy {
+  id              String   @id @default(cuid())
+  name            String
+  // Token bucket capacity
+  capacity        Int      @default(100)
+  // Refill rate (tokens per second)
+  refillRate      Float    @default(10)
+  // Burst limit (max requests in a burst)
+  burstLimit      Int      @default(20)
+  // Concurrency limit (max simultaneous requests)
+  concurrencyLimit Int     @default(10)
+  // Whether adaptive throttling is enabled
+  adaptive        Boolean  @default(false)
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([active])
+}
+
+// --- Secret References (links to M3 Secret model, with connector scope) ---
+
+model SecretReference {
+  id              String   @id @default(cuid())
+  organizationId  String
+  connectorDefId  String
+  // The secret key name (e.g. "API_KEY", "OAUTH_CLIENT_SECRET")
+  key             String
+  // Reference to the M3 Secret model (by key, not raw value)
+  secretExtensionId String?
+  // Optional expiration
+  expiresAt       DateTime?
+  // Whether this reference is active
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([organizationId, connectorDefId, key])
+  @@index([organizationId])
+  @@index([connectorDefId])
 }

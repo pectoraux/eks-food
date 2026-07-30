@@ -47,6 +47,7 @@
       "@eks/notifications": ["./src/packages/notifications/index.ts"],
       "@eks/verification": ["./src/packages/verification/index.ts"],
       "@eks/developer": ["./src/packages/developer/index.ts"],
+      "@eks/integration": ["./src/packages/integration/index.ts"],
       "@eks/sdk": ["./src/packages/sdk/index.ts"],
       "@eks/connector-sdk": ["./src/packages/connector-sdk/index.ts"],
       "@eks/runtime": ["./src/packages/runtime/index.ts"],
