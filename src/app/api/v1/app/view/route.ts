@@ -1008,6 +1008,1077 @@ const orgAdminViews: Record<string, ReturnType<typeof makeView>> = {
   ),
 };
 
+// === ADDITIONAL ROLE VIEWS ===
+const additionalViews: Record<string, ReturnType<typeof makeView>> = {
+    "COOK:kitchen-calendar": makeView(
+      "Kitchen Calendar", "Your cooking schedule",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Kitchen Calendar", icon: "Calendar", items: [
+          { title: "Your scheduled cooking jobs will appear here. Set your availability to start receiving bookings.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "COOK:shopping-list": makeView(
+      "Shopping List", "Ingredients you need for upcoming jobs",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Shopping List", icon: "ShoppingBag", items: [
+          { title: "Your shopping list will be generated from confirmed bookings. When customers book you, the required ingredients will appear here.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "COOK:ingredients": makeView(
+      "Ingredients Needed", "Ingredients required for your jobs",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Ingredients Needed", icon: "Package", items: [
+          { title: "Required ingredients will be calculated from your confirmed bookings.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "COOK:repeat-customers": makeView(
+      "Repeat Customers", "Customers who book you regularly",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Repeat Customers", icon: "Users", items: [
+          { title: "Your repeat customers will appear here once you have completed bookings.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "COOK:availability": makeView(
+      "Availability", "Set when you can cook",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Availability", icon: "Clock", items: [
+          { title: "Set your available hours so customers can book you. Toggle your availability for each day and time slot.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "COOK:messages": makeView(
+      "Messages", "Messages from customers",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Messages", icon: "MessageSquare", items: [
+          { title: "Messages from your customers will appear here. You can respond to booking inquiries and coordinate meal details.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "COOK:certifications": makeView(
+      "Certifications", "Your professional certifications",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Certifications", icon: "Award", items: [
+          { title: "Add your food safety certifications, culinary degrees, and professional qualifications. Verified certifications increase customer trust.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "COOK:menu": makeView(
+      "Menu", "Your cooking menu",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Menu", icon: "Utensils", items: [
+          { title: "Create your menu by adding dishes you can prepare. Include pricing, portions, and preparation time for each dish.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "COOK:recipes": makeView(
+      "Recipes", "Your recipe collection",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Recipes", icon: "FileText", items: [
+          { title: "Save and organize your recipes. Each recipe can be linked to menu items and used to generate shopping lists.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "COOK:income-goals": makeView(
+      "Income Goals", "Set and track your earnings targets",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Income Goals", icon: "TrendingUp", items: [
+          { title: "Set weekly or monthly income goals. Track your progress and get insights on how to reach your targets.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "COOK:inventory": makeView(
+      "Inventory", "Your kitchen inventory",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Inventory", icon: "Package", items: [
+          { title: "Track ingredients and supplies in your kitchen. Get alerts when items are running low.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "RESTAURANT_OWNER:kitchen-status": makeView(
+      "Kitchen Status", "Real-time kitchen operations",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Kitchen Status", icon: "Utensils", items: [
+          { title: "Your active kitchen orders will appear here. Track preparation status and timing for each order.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "RESTAURANT_OWNER:reservations": makeView(
+      "Reservations", "Customer reservations",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Reservations", icon: "Calendar", items: [
+          { title: "Restaurant reservations will appear here. Accept, modify, or decline reservation requests.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "RESTAURANT_OWNER:staff": makeView(
+      "Staff", "Manage your restaurant team",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Staff", icon: "Users", items: [
+          { title: "Add and manage your restaurant staff. Assign roles, set schedules, and track performance.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "RESTAURANT_OWNER:inventory": makeView(
+      "Inventory", "Restaurant inventory management",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Inventory", icon: "Package", items: [
+          { title: "Track your restaurant's ingredient and supply inventory. Set par levels and get restock alerts.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "RESTAURANT_OWNER:suppliers": makeView(
+      "Suppliers", "Your ingredient suppliers",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Suppliers", icon: "Truck", items: [
+          { title: "Manage your supplier relationships. Track purchase orders, delivery schedules, and pricing.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "RESTAURANT_OWNER:sales": makeView(
+      "Sales", "Sales analytics and reports",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Sales", icon: "BarChart3", items: [
+          { title: "Track your restaurant's sales performance. View daily, weekly, and monthly revenue breakdowns.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "RESTAURANT_OWNER:deliveries": makeView(
+      "Deliveries", "Delivery orders and tracking",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Deliveries", icon: "Truck", items: [
+          { title: "Track delivery orders from your restaurant. Monitor rider assignment and delivery status.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "RESTAURANT_OWNER:customers": makeView(
+      "Customers", "Your restaurant's customers",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Customers", icon: "Users", items: [
+          { title: "View your customer database. Track order history, preferences, and feedback.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "RESTAURANT_OWNER:menu": makeView(
+      "Menu", "Manage your restaurant menu",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Menu", icon: "Utensils", items: [
+          { title: "Add, edit, and organize your restaurant's menu items. Set prices, descriptions, and availability.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "RESTAURANT_OWNER:reports": makeView(
+      "Reports", "Business reports and analytics",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Reports", icon: "BarChart3", items: [
+          { title: "Generate reports on sales, inventory, staff performance, and customer satisfaction.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "RESTAURANT_OWNER:operations": makeView(
+      "Operations", "Daily operations management",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Operations", icon: "Settings", items: [
+          { title: "Manage daily operations including opening hours, capacity, and service settings.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "RESTAURANT_STAFF:home": makeView(
+      "Today's Tasks", "Your assigned tasks for today",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Today's Tasks", icon: "ListChecks", items: [
+          { title: "Your assigned kitchen tasks will appear here. Track preparation, cooking, and plating tasks.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "RESTAURANT_STAFF:kitchen-status": makeView(
+      "Kitchen Status", "Current kitchen operations",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Kitchen Status", icon: "Utensils", items: [
+          { title: "View active orders and their preparation status in real time.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "RESTAURANT_STAFF:orders": makeView(
+      "Active Orders", "Orders being prepared",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Active Orders", icon: "Package", items: [
+          { title: "Orders assigned to you will appear here. Update status as you progress through preparation.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "RESTAURANT_STAFF:prep-list": makeView(
+      "Prep List", "Ingredients and prep tasks",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Prep List", icon: "ClipboardList", items: [
+          { title: "Your prep list will be generated from active orders. Track what needs to be washed, cut, and prepared.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "RESTAURANT_STAFF:schedule": makeView(
+      "My Schedule", "Your work schedule",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "My Schedule", icon: "Calendar", items: [
+          { title: "View your assigned shifts and working hours.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "RESTAURANT_STAFF:inventory": makeView(
+      "Inventory", "Kitchen inventory",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Inventory", icon: "Package", items: [
+          { title: "Track ingredient levels in your station. Report low stock to the kitchen manager.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "RESTAURANT_STAFF:cleaning": makeView(
+      "Cleaning Tasks", "Assigned cleaning duties",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Cleaning Tasks", icon: "CheckCircle2", items: [
+          { title: "Your cleaning assignments will appear here. Complete and log each task.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "VENDOR:home": makeView(
+      "Dashboard", "Your vendor dashboard",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Dashboard", icon: "LayoutDashboard", items: [
+          { title: "Track your product sales, orders, and deliveries from one place.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "VENDOR:products": makeView(
+      "Products", "Manage your products",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Products", icon: "Package", items: [
+          { title: "Add, edit, and organize your product catalog. Set prices, descriptions, and availability.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "VENDOR:orders": makeView(
+      "Orders", "Customer orders",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Orders", icon: "ShoppingBag", items: [
+          { title: "View and manage orders from customers. Accept, process, and track each order.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "VENDOR:deliveries": makeView(
+      "Upcoming Deliveries", "Scheduled deliveries",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Upcoming Deliveries", icon: "Truck", items: [
+          { title: "Track your upcoming deliveries. View delivery addresses, times, and order contents.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "VENDOR:customers": makeView(
+      "Customers", "Your customer base",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Customers", icon: "Users", items: [
+          { title: "View customers who have ordered from you. Track order history and preferences.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "VENDOR:payments": makeView(
+      "Payments", "Payment tracking",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Payments", icon: "Wallet", items: [
+          { title: "Track payments received and pending. View transaction history and payout schedules.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "VENDOR:performance": makeView(
+      "Performance", "Sales performance metrics",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Performance", icon: "TrendingUp", items: [
+          { title: "Track your best-selling products, revenue trends, and customer satisfaction ratings.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "RIDER:active": makeView(
+      "Active Delivery", "Your current delivery",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Active Delivery", icon: "Navigation", items: [
+          { title: "When you accept a delivery, navigation and delivery details will appear here.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "RIDER:vehicle": makeView(
+      "Vehicle", "Your vehicle information",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Vehicle", icon: "Bike", items: [
+          { title: "Manage your vehicle details including type, registration, and maintenance schedule.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "RIDER:availability": makeView(
+      "Availability", "Set when you can deliver",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Availability", icon: "Clock", items: [
+          { title: "Set your available hours so the platform can assign you deliveries.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "RIDER:messages": makeView(
+      "Messages", "Messages from dispatch",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Messages", icon: "MessageSquare", items: [
+          { title: "Messages from dispatch and customers will appear here.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "FLEET_MANAGER:home": makeView(
+      "Fleet Overview", "Manage your delivery fleet",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Fleet Overview", icon: "LayoutDashboard", items: [
+          { title: "Track your fleet's performance including active riders, deliveries, and coverage.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "FLEET_MANAGER:riders": makeView(
+      "Riders", "Manage your riders",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Riders", icon: "Users", items: [
+          { title: "Add, assign, and track your delivery riders. Monitor their performance and availability.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "FLEET_MANAGER:vehicles": makeView(
+      "Vehicles", "Fleet vehicle management",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Vehicles", icon: "Truck", items: [
+          { title: "Manage your fleet vehicles. Track maintenance, registration, and availability.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "FLEET_MANAGER:deliveries": makeView(
+      "Active Deliveries", "Track active deliveries",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Active Deliveries", icon: "Package", items: [
+          { title: "Monitor all active deliveries across your fleet in real time.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "FLEET_MANAGER:routes": makeView(
+      "Routes", "Delivery route optimization",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Routes", icon: "MapPin", items: [
+          { title: "View and optimize delivery routes for your riders.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "FLEET_MANAGER:maintenance": makeView(
+      "Maintenance", "Vehicle maintenance tracking",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Maintenance", icon: "Settings", items: [
+          { title: "Track vehicle maintenance schedules, service history, and upcoming inspections.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "FLEET_MANAGER:performance": makeView(
+      "Performance", "Fleet performance metrics",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Performance", icon: "BarChart3", items: [
+          { title: "Track delivery times, success rates, and rider performance across your fleet.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "AREA_MANAGER:home": makeView(
+      "Operations", "Regional operations overview",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Operations", icon: "LayoutDashboard", items: [
+          { title: "Monitor operations across your assigned region including restaurants, cooks, and riders.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "AREA_MANAGER:restaurants": makeView(
+      "Restaurants", "Restaurants in your region",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Restaurants", icon: "Store", items: [
+          { title: "View and manage restaurants in your assigned area. Track performance and compliance.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "AREA_MANAGER:cooks": makeView(
+      "Cooks", "Cooks in your region",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Cooks", icon: "ChefHat", items: [
+          { title: "View cooks operating in your area. Track their availability and performance.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "AREA_MANAGER:riders": makeView(
+      "Riders", "Riders in your region",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Riders", icon: "Bike", items: [
+          { title: "View delivery riders in your area. Track their availability and delivery performance.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "AREA_MANAGER:coverage": makeView(
+      "Coverage", "Delivery coverage map",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Coverage", icon: "MapPin", items: [
+          { title: "View delivery coverage across your region. Identify gaps and optimize rider placement.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "AREA_MANAGER:incidents": makeView(
+      "Incidents", "Regional incidents and issues",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Incidents", icon: "AlertCircle", items: [
+          { title: "Track and resolve incidents in your region including delivery failures and customer complaints.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "AREA_MANAGER:performance": makeView(
+      "Performance", "Regional performance metrics",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Performance", icon: "TrendingUp", items: [
+          { title: "Track regional KPIs including order volume, delivery times, and customer satisfaction.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "AREA_MANAGER:analytics": makeView(
+      "Analytics", "Regional analytics and insights",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Analytics", icon: "BarChart3", items: [
+          { title: "Deep dive into regional data. View trends, patterns, and opportunities for improvement.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "SUPPLIER:demand": makeView(
+      "Demand Forecast", "Predicted demand for your products",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Demand Forecast", icon: "TrendingUp", items: [
+          { title: "Demand forecasts will help you plan your inventory and production. Based on historical order data.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "SUPPLIER:payments": makeView(
+      "Payments Status", "Track payments from customers",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Payments Status", icon: "Wallet", items: [
+          { title: "View payment status for all purchase orders. Track paid, pending, and overdue invoices.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "SUPPLIER:warehouse": makeView(
+      "Warehouse", "Warehouse management",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Warehouse", icon: "Building2", items: [
+          { title: "Manage your warehouse locations, storage zones, and stock movements.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "SUPPLIER:products": makeView(
+      "Products", "Your product catalog",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Products", icon: "Package", items: [
+          { title: "Add, edit, and organize your product catalog. Set prices, units, and availability.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "SUPPLIER:availability": makeView(
+      "Availability", "Set your delivery availability",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Availability", icon: "Clock", items: [
+          { title: "Set when you can fulfill and deliver orders. Manage your delivery schedule.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "SUPPLIER:performance": makeView(
+      "Performance", "Supplier performance metrics",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Performance", icon: "BarChart3", items: [
+          { title: "Track your on-time delivery rate, order accuracy, and customer satisfaction.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "FOOD_INSPECTOR:kitchens": makeView(
+      "Assigned Kitchens", "Kitchens you need to inspect",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Assigned Kitchens", icon: "Utensils", items: [
+          { title: "Your assigned kitchen inspections will appear here. View schedules and preparation checklists.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "FOOD_INSPECTOR:pending-reports": makeView(
+      "Pending Reports", "Inspection reports to complete",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Pending Reports", icon: "FileText", items: [
+          { title: "Complete and submit your pending inspection reports. Drafts are saved automatically.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "FOOD_INSPECTOR:schedules": makeView(
+      "Schedules", "Your inspection schedule",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Schedules", icon: "Calendar", items: [
+          { title: "View your upcoming inspection assignments and plan your route.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "FOOD_INSPECTOR:certificates": makeView(
+      "Certificates", "Food safety certificates issued",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Certificates", icon: "Award", items: [
+          { title: "View and manage food safety certificates you've issued to kitchens and cooks.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "ORG_ADMIN:permissions": makeView(
+      "Permissions", "Manage user permissions",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Permissions", icon: "KeyRound", items: [
+          { title: "Configure role-based access control. Define what each role can view, create, and modify.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "ORG_ADMIN:operations": makeView(
+      "Operations", "Platform operations",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Operations", icon: "Settings", items: [
+          { title: "Manage platform-wide settings including feature flags, integrations, and maintenance windows.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "ORG_ADMIN:reports": makeView(
+      "Reports", "Organization reports",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Reports", icon: "BarChart3", items: [
+          { title: "Generate reports on platform usage, user activity, and business metrics.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "ORG_ADMIN:billing": makeView(
+      "Billing", "Subscription and billing",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Billing", icon: "Wallet", items: [
+          { title: "Manage your organization's subscription, view invoices, and update payment methods.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "ORG_ADMIN:locations": makeView(
+      "Locations", "Manage service locations",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Locations", icon: "MapPin", items: [
+          { title: "Define the geographic areas where your organization operates.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "ORG_ADMIN:policies": makeView(
+      "Policies", "Platform policies",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Policies", icon: "ShieldCheck", items: [
+          { title: "Configure platform policies including booking rules, cancellation policies, and quality standards.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "ORG_ADMIN:invitations": makeView(
+      "Invitations", "Invite team members",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Invitations", icon: "Mail", items: [
+          { title: "Send invitations to new team members. Track invitation status and resend as needed.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "DEVELOPER:events": makeView(
+      "Events", "Platform event stream",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Events", icon: "Activity", items: [
+          { title: "View real-time platform events. Filter by event type, source, and aggregate.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "DEVELOPER:connectors": makeView(
+      "Connectors", "Manage integrations",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Connectors", icon: "Plug", items: [
+          { title: "View and configure platform connectors. Set up credentials and monitor sync status.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "DEVELOPER:webhooks": makeView(
+      "Webhooks", "Webhook subscriptions",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Webhooks", icon: "Webhook", items: [
+          { title: "Manage webhook endpoints. View delivery history and retry failed deliveries.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "DEVELOPER:marketplace": makeView(
+      "Marketplace", "Extension marketplace",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Marketplace", icon: "ShoppingBag", items: [
+          { title: "Browse and install extensions from the Eks-Food marketplace.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "DEVELOPER:logs": makeView(
+      "Logs", "Application logs",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Logs", icon: "FileText", items: [
+          { title: "View application logs. Filter by level, source, and time range.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "DEVELOPER:cli": makeView(
+      "CLI", "Command-line interface",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "CLI", icon: "Terminal", items: [
+          { title: "Use the Eks-Food CLI to manage extensions, deploy, and debug from the terminal.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "MARKETPLACE_PUBLISHER:home": makeView(
+      "Dashboard", "Publisher dashboard",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Dashboard", icon: "LayoutDashboard", items: [
+          { title: "Track your published extensions, installs, and revenue.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "MARKETPLACE_PUBLISHER:listings": makeView(
+      "My Listings", "Your published extensions",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "My Listings", icon: "Package", items: [
+          { title: "Manage your marketplace listings. Update versions, pricing, and descriptions.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "MARKETPLACE_PUBLISHER:marketplace": makeView(
+      "Marketplace", "Browse the marketplace",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Marketplace", icon: "ShoppingBag", items: [
+          { title: "View the marketplace from a publisher perspective. See trends and competitor extensions.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "MARKETPLACE_PUBLISHER:analytics": makeView(
+      "Analytics", "Extension analytics",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Analytics", icon: "BarChart3", items: [
+          { title: "Track installs, usage, ratings, and revenue for your published extensions.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "MARKETPLACE_PUBLISHER:revenue": makeView(
+      "Revenue", "Earnings from extensions",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Revenue", icon: "Wallet", items: [
+          { title: "Track your revenue from extension sales. View payout history and pending payments.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "PLATFORM_ADMIN:deployments": makeView(
+      "Deployments", "Platform deployment history",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Deployments", icon: "GitBranch", items: [
+          { title: "View deployment history, rollback if needed, and monitor deployment health.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "PLATFORM_ADMIN:ai": makeView(
+      "AI Operations", "AI platform monitoring",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "AI Operations", icon: "Brain", items: [
+          { title: "Monitor AI agent activity, memory usage, and policy enforcement across the platform.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "PLATFORM_ADMIN:connectors": makeView(
+      "Connectors", "Platform connectors",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Connectors", icon: "Plug", items: [
+          { title: "Monitor all platform connectors. View health, sync status, and configuration.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "PLATFORM_ADMIN:infrastructure": makeView(
+      "Infrastructure", "Infrastructure monitoring",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Infrastructure", icon: "Server", items: [
+          { title: "Monitor database, cache, queues, and API health. View capacity and resource utilization.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "PLATFORM_ADMIN:security": makeView(
+      "Security", "Security monitoring",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Security", icon: "Shield", items: [
+          { title: "View security alerts, audit logs, and access patterns. Manage API keys and secrets.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+    "PLATFORM_ADMIN:governance": makeView(
+      "Governance", "Platform governance",
+      [
+        { label: "Platform Users", value: String(stats.userCount), subtext: "Total", icon: "Users", color: "text-blue-600" },
+        { label: "Total Bookings", value: String(stats.bookingCount), subtext: "On platform", icon: "Package", color: "text-green-600" },
+      ],
+      [
+        { title: "Governance", icon: "FileCheck", items: [
+          { title: "Manage platform policies, compliance controls, and data governance rules.", subtitle: "This feature is ready for use. Data will appear here as the platform grows." },
+        ]},
+      ],
+    ),
+};
 
   // Merge all view maps
   const allViews = {
@@ -1021,6 +2092,7 @@ const orgAdminViews: Record<string, ReturnType<typeof makeView>> = {
     ...supplierViews,
     ...inspectorViews,
     ...orgAdminViews,
+    ...additionalViews,
   };
 
   // Return the specific view, or a default that's honest about the state
